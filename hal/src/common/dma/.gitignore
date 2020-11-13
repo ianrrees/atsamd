@@ -1,7 +1,0 @@
-# Rust
-target/
-Cargo.lock
-
-# IDE files
-.history/
-.vscode/
