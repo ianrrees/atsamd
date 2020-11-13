@@ -1,6 +1,6 @@
 use core::u16;
 use core::ptr;
-use crate::{
+use super::types::{
     StepSize,
     BlockAction,
     EventOutput,

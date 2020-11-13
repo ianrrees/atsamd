@@ -17,33 +17,7 @@
 //! 
 //! Because of the design of the DMA system on the SAMD21 family, any channel methods that modify channel registers are
 //! NOT interrupt-safe. Beware of accessing or mutating channel register without calling in an interrupt-free section.
-#![no_std]
 #![deny(missing_docs)]
-
-#[cfg(not(any(feature = "samd5x", feature = "samd21")))]
-compile_error!("Please use this crate's feature flags to select a SAM micro-controller to target.");
-
-#[macro_use]
-extern crate bitflags;
-extern crate smart_default;
-
-#[cfg(feature = "samd51j19a")]
-use atsamd51j19a as target_device;
-
-#[cfg(feature = "samd51j20a")]
-use atsamd51j20a as target_device;
-
-#[cfg(feature = "samd51g19a")]
-use atsamd51g19a as target_device;
-
-#[cfg(feature = "samd21g18a")]
-use atsamd21g18a as target_device;
-
-#[cfg(feature = "samd21e18a")]
-use atsamd21e18a as target_device;
-
-#[cfg(feature = "samd21j18a")]
-use atsamd21j18a as target_device;
 
 mod channel;
 mod types;
@@ -67,7 +41,12 @@ pub mod consts {
     pub type CH10 = U10;
     pub type CH11 = U11;
 
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     mod samd5x {
         use typenum::consts::*;
 
@@ -93,14 +72,19 @@ pub mod consts {
         pub type CH31 = U31;
     }
     
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub use self::samd5x::*;
 }
 
 #[allow(unused_imports)]
 use core::u32;
 use core::u16;
-use target_device::DMAC;
+use crate::target_device::DMAC;
 use typenum::consts::*;
 use typenum::{Unsigned, IsLess};
 use storage::DmaStorage;
@@ -113,9 +97,14 @@ pub use self::descriptors::*;
 /// 
 /// Used to distribute channels, as well as control higher level operations of the DMA system.
 pub struct DMAController<T: 'static + DmaStorage> {
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     channels: u32,
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     channels: u16,
     storage: &'static mut T,
     dmac: DMAC,
@@ -127,9 +116,14 @@ impl<T: 'static + DmaStorage> DMAController<T> {
         dmac.baseaddr.write(|w| unsafe { w.bits(storage.baseaddr() as u32) });
         dmac.wrbaddr.write(|w| unsafe { w.bits(storage.wbaddr() as u32) });
         DMAController {
-            #[cfg(feature = "samd21")]
+            #[cfg(any(feature = "samd11", feature = "samd21"))]
             channels: u16::MAX >> 16 - T::Size::U16,
-            #[cfg(feature = "samd5x")]
+            #[cfg(any(
+                feature = "samd51",
+                feature = "same51",
+                feature = "same53",
+                feature = "same54"
+            ))]
             channels: u32::MAX >> 32 - T::Size::U32,
             storage,
             dmac
@@ -223,7 +217,12 @@ impl<T: 'static + DmaStorage> DMAController<T> {
     }
 
     /// Get the Quality of Service guarantee for the specified priority level.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn get_priority_qos(&self, level: Priority) -> QoS {
         match level {
             Priority::Level0 => self.dmac.prictrl0.read().qos0().variant().into(),
@@ -234,7 +233,12 @@ impl<T: 'static + DmaStorage> DMAController<T> {
     }
 
     /// Set the Quality of Service guarantee for the specified priority level.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn set_piority_qos(&mut self, level: Priority, qos: QoS) {
         match level {
             Priority::Level0 => self.dmac.prictrl0.modify(|_, w| w.qos0().bits(qos as u8)),
@@ -245,37 +249,37 @@ impl<T: 'static + DmaStorage> DMAController<T> {
     }
 
     /// Get the Quality of Service guarantee for data transfer.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn get_data_transfer_qos(&self) -> QoS {
         self.dmac.qosctrl.read().dqos().variant().into()
     }
 
     /// Get the Quality of Service guarantee for fetching transfer descriptors.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn get_fetch_qos(&self) -> QoS {
         self.dmac.qosctrl.read().fqos().variant().into()
     }
 
     /// Get the Quality of Service guarantee for writing transfer descriptors to the write-back section.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn get_write_back_qos(&self) -> QoS {
         self.dmac.qosctrl.read().wrbqos().variant().into()
     }
 
     /// Set the Quality of Service guarantee for data transfer.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn set_data_transfer_qos(&mut self, qos: QoS) {
         self.dmac.qosctrl.modify(|_, w| w.dqos().bits(qos as u8))
     }
 
     /// Set the Quality of Service guarantee for fetching transfer descriptors.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn set_fetch_qos(&mut self, qos: QoS) {
         self.dmac.qosctrl.modify(|_, w| w.fqos().bits(qos as u8))
     }
 
     /// Set the Quality of Service guarantee for writing transfer descriptors to the write-back section.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     pub fn set_write_back_qos(&mut self, qos: QoS) {
         self.dmac.qosctrl.modify(|_, w| w.wrbqos().bits(qos as u8))
     }
@@ -380,7 +384,12 @@ impl<T: 'static + DmaStorage> DMAController<T> {
                 return Some((reg.id().bits(), Some(Status::FetchError)));
             }
     
-            #[cfg(feature = "samd5x")]
+            #[cfg(any(
+                feature = "samd51",
+                feature = "same51",
+                feature = "same53",
+                feature = "same54"
+            ))]
             if reg.crcerr().bit_is_set() {
                 return Some((reg.id().bits(), Some(Status::CRCError)));
             }
@@ -419,7 +428,12 @@ impl<T: 'static + DmaStorage> DMAController<T> {
             return Some(Status::FetchError);
         }
 
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         if reg.crcerr().bit_is_set() {
             return Some(Status::CRCError);
         }

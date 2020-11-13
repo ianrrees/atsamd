@@ -5,13 +5,18 @@
 use core::marker::PhantomData;
 use typenum::consts::*;
 use typenum::{Unsigned, IsLessOrEqual};
-use crate::TransferDescriptor;
+use super::descriptors::TransferDescriptor;
 
 /// The maximum amount of channels that can exist.
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 pub type CHANMAX = U32;
 /// The maximum amount of channels that can exist.
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 pub type CHANMAX = U12;
 
 mod sealed {
@@ -33,7 +38,12 @@ mod sealed {
     impl Sealed for Storage11 {}
     impl Sealed for Storage12 {}
     
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     mod samd5x {
         use super::*;
 
@@ -67,18 +77,18 @@ macro_rules! dma_storage {
             #[derive(Default)]
             #[repr(align(16))]
             pub struct [<Storage $n>] {
-                baseaddr: [$crate::TransferDescriptor; $n],
-                wbaddr: [$crate::TransferDescriptor; $n]
+                baseaddr: [TransferDescriptor; $n],
+                wbaddr: [TransferDescriptor; $n]
             }
 
-            impl $crate::DmaStorage for [<Storage $n>] {
+            impl DmaStorage for [<Storage $n>] {
                 type Size = typenum::consts::[<U $n>];
 
-                fn baseaddr(&self) -> *const $crate::TransferDescriptor {
+                fn baseaddr(&self) -> *const TransferDescriptor {
                     self.baseaddr.as_ptr()
                 }
 
-                fn wbaddr(&self) -> *const $crate::TransferDescriptor {
+                fn wbaddr(&self) -> *const TransferDescriptor {
                     self.wbaddr.as_ptr()
                 }
             }
@@ -86,7 +96,12 @@ macro_rules! dma_storage {
     };
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 mod samd5x {
     dma_storage!(32);
     dma_storage!(31);
@@ -110,7 +125,12 @@ mod samd5x {
     dma_storage!(13);
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 pub use samd5x::*;
 
 dma_storage!(12);

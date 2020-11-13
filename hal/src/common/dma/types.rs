@@ -2,15 +2,30 @@
 use smart_default::SmartDefault;
 
 use crate::target_device::generic::Variant;
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 use crate::target_device::dmac::chctrla::{TRIGACT_A, BURSTLEN_A, THRESHOLD_A, TRIGSRC_A};
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 use crate::target_device::dmac::chprilvl::PRILVL_A;
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 use crate::target_device::dmac::prictrl0::{QOS0_A, QOS1_A, QOS2_A, QOS3_A};
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 use crate::target_device::dmac::chctrlb::{TRIGACT_A, TRIGSRC_A, LVL_A as PRILVL_A};
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 use crate::target_device::dmac::qosctrl::{DQOS_A, FQOS_A, WRBQOS_A};
 
 bitflags! {
@@ -28,45 +43,145 @@ bitflags! {
         const CHAN9 = 1 << 9;
         const CHAN10 = 1 << 10;
         const CHAN11 = 1 << 11;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN12 = 1 << 12;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN13 = 1 << 13;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN14 = 1 << 14;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN15 = 1 << 15;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN16 = 1 << 16;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN17 = 1 << 17;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN18 = 1 << 18;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN19 = 1 << 19;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN20 = 1 << 20;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN21 = 1 << 21;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN22 = 1 << 22;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN23 = 1 << 23;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN24 = 1 << 24;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN25 = 1 << 25;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN26 = 1 << 26;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN27 = 1 << 27;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN28 = 1 << 28;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN29 = 1 << 29;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN30 = 1 << 30;
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         const CHAN31 = 1 << 31;
     }
 }
@@ -85,7 +200,12 @@ pub enum Status {
     Busy,
     Pending,
     FetchError,
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     CRCError
 }
 
@@ -97,7 +217,12 @@ pub enum Priority {
     Level3,
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<Variant<u8, PRILVL_A>> for Priority {
     fn from(value: Variant<u8, PRILVL_A>) -> Priority {
         use self::PRILVL_A::*;
@@ -112,7 +237,7 @@ impl From<Variant<u8, PRILVL_A>> for Priority {
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 impl From<PRILVL_A> for Priority {
     fn from(value: PRILVL_A) -> Priority {
         use self::PRILVL_A::*;
@@ -134,7 +259,12 @@ pub enum QoS {
     Critical,
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<QOS0_A> for QoS {
     fn from(val: QOS0_A) -> QoS {
         use self::QoS::*;
@@ -148,7 +278,12 @@ impl From<QOS0_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<QOS1_A> for QoS {
     fn from(val: QOS1_A) -> QoS {
         use self::QoS::*;
@@ -162,7 +297,12 @@ impl From<QOS1_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<QOS2_A> for QoS {
     fn from(val: QOS2_A) -> QoS {
         use self::QoS::*;
@@ -176,7 +316,12 @@ impl From<QOS2_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<QOS3_A> for QoS {
     fn from(val: QOS3_A) -> QoS {
         use self::QoS::*;
@@ -190,7 +335,7 @@ impl From<QOS3_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 impl From<DQOS_A> for QoS {
     fn from(val: DQOS_A) -> QoS {
         use self::QoS::*;
@@ -204,7 +349,7 @@ impl From<DQOS_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 impl From<FQOS_A> for QoS {
     fn from(val: FQOS_A) -> QoS {
         use self::QoS::*;
@@ -218,7 +363,7 @@ impl From<FQOS_A> for QoS {
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 impl From<WRBQOS_A> for QoS {
     fn from(val: WRBQOS_A) -> QoS {
         use self::QoS::*;
@@ -233,7 +378,12 @@ impl From<WRBQOS_A> for QoS {
 }
 
 /// Length of a burst in beats.
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 pub enum BurstLength {
     Single = 0,
     TwoBeats,
@@ -253,7 +403,12 @@ pub enum BurstLength {
     SixteenBeats,
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<BURSTLEN_A> for BurstLength {
     fn from(value: BURSTLEN_A) -> BurstLength {
         use self::BurstLength::*;
@@ -283,10 +438,15 @@ pub enum TriggerAction {
     /// Trigger starts a block transfer.
     Block = 0,
     /// Trigger starts a burst transfer.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     Burst = 2,
     /// Trigger starts a beat transfer.
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samd11", feature = "samd21"))]
     Beat = 2,
     /// Trigger starts a transaction transfer.
     Transaction = 3,
@@ -298,9 +458,14 @@ impl From<Variant<u8, TRIGACT_A>> for TriggerAction {
         match value {
             Variant::Val(v) => match v {
                 BLOCK => TriggerAction::Block,
-                #[cfg(feature = "samd5x")]
+                #[cfg(any(
+                    feature = "samd51",
+                    feature = "same51",
+                    feature = "same53",
+                    feature = "same54"
+                ))]
                 BURST => TriggerAction::Burst,
-                #[cfg(feature = "samd21")]
+                #[cfg(any(feature = "samd11", feature = "samd21"))]
                 BEAT => TriggerAction::Beat,
                 TRANSACTION => TriggerAction::Transaction,
             },
@@ -490,7 +655,12 @@ impl From<Variant<u8, TRIGSRC_A>> for TriggerSource {
 }
 
 /// Number of beats before destination writes occur.
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 pub enum FifoThreshold {
     OneBeat = 0,
     TwoBeats,
@@ -498,7 +668,12 @@ pub enum FifoThreshold {
     EightBeats,
 }
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 impl From<THRESHOLD_A> for FifoThreshold {
     fn from(value: THRESHOLD_A) -> FifoThreshold {
         use self::FifoThreshold::*;

@@ -1,5 +1,6 @@
 #[cfg(feature = "device")]
 pub mod delay;
+pub mod dma;
 #[cfg(feature = "device")]
 pub mod gpio;
 #[cfg(feature = "device")]

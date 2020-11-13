@@ -1,11 +1,21 @@
 use core::fmt;
 use crate::target_device::DMAC;
-use crate::{TriggerSource, TriggerAction, Priority, Interrupts};
-#[cfg(feature = "samd5x")]
-use crate::{BurstLength, FifoThreshold};
-use crate::descriptors::{TransferDescriptor};
+use super::types::{TriggerSource, TriggerAction, Priority, Interrupts};
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
+use super::descriptors::{BurstLength, FifoThreshold};
+use super::descriptors::{TransferDescriptor};
 
-#[cfg(feature = "samd5x")]
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
 macro_rules! channel_reg {
     (@arm $reg:ident, $n:literal) => {
         paste::expr! { unsafe { &(*DMAC::ptr()).[<$reg $n>] } }
@@ -49,7 +59,7 @@ macro_rules! channel_reg {
     };
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samd11", feature = "samd21"))]
 macro_rules! channel_reg {
     ($reg:ident, $n:expr) => {
         unsafe {
@@ -120,92 +130,152 @@ impl Channel {
     }
 
     ///  Configure whether the channel continues to run in standby.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn set_run_standby(&mut self, run_standby: bool) {
         channel_reg!(chctrla, self.id).modify(|_, w| w.runstdby().bit(run_standby));
     }
 
     /// Return true if the channel continues to run in standby.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn get_run_standby(&self) -> bool {
         channel_reg!(chctrla, self.id).read().runstdby().bit()
     }
 
     /// Configure how many beats are in a burst.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn set_burst_length(&mut self, burst_len: BurstLength) {
         channel_reg!(chctrla, self.id).modify(|_, w| w.burstlen().bits(burst_len as u8));
     }
 
     /// Get the length of a burst in beats.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn get_burst_length(&self) -> BurstLength {
         channel_reg!(chctrla, self.id).read().burstlen().variant().into()
     }
 
     /// Set the trigger action for the channel.
     pub fn set_trigger_action(&mut self, trig_act: TriggerAction) {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         let reg = channel_reg!(chctrla, self.id);
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         let reg = channel_reg!(chctrlb, self.id);
         reg.modify(|_, w| unsafe { w.trigact().bits(trig_act as u8) });
     }
 
     /// Get the trigger action for the channel.
     pub fn get_trigger_action(&self) -> TriggerAction {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         let reg = channel_reg!(chctrla, self.id);
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         let reg = channel_reg!(chctrlb, self.id);
         reg.read().trigact().variant().into()
     }
 
     /// Set threshold for when destination writes occur.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn set_fifo_threshold(&mut self, fifo_threshold: FifoThreshold) {
         channel_reg!(chctrla, self.id).modify(|_, w| w.threshold().bits(fifo_threshold as u8));
     }
 
     /// Get the threshold for when destination writes will occur.
-    #[cfg(feature = "samd5x")]
+    #[cfg(any(
+        feature = "samd51",
+        feature = "same51",
+        feature = "same53",
+        feature = "same54"
+    ))]
     pub fn get_fifi_threshold(&self) -> FifoThreshold {
         channel_reg!(chctrla, self.id).read().threshold().variant().into()
     }
 
     /// Set the source trigger for the DMA Channel.
     pub fn set_source(&mut self, source: TriggerSource) {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         let reg = channel_reg!(chctrla, self.id);
 
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         let reg = channel_reg!(chctrlb, self.id);
         reg.modify(|_, w| unsafe { w.trigsrc().bits(source as u8)});
     }
 
     /// Get the trigger source for the channel.
     pub fn get_source(&self) -> TriggerSource {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         let reg = channel_reg!(chctrla, self.id);
 
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         let reg = channel_reg!(chctrlb, self.id);
         reg.read().trigsrc().variant().into()
     }
 
     /// Set the priority level of the channel.
     pub fn set_priority(&mut self, priority: Priority) {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         channel_reg!(chprilvl, self.id).write(|w| unsafe { w.prilvl().bits(priority as u8) });
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         channel_reg!(chctrlb, self.id).modify(|_, w| w.lvl().bits(priority as u8))
     }
 
     /// Get channel priority level.
     pub fn get_priority(&self) -> Priority {
-        #[cfg(feature = "samd5x")]
+        #[cfg(any(
+            feature = "samd51",
+            feature = "same51",
+            feature = "same53",
+            feature = "same54"
+        ))]
         return channel_reg!(chprilvl, self.id).read().prilvl().variant().into();
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         return channel_reg!(chctrlb, self.id).read().lvl().variant().into();
     }
 
@@ -342,7 +412,12 @@ impl Channel {
 
         if channel_reg!(chctrla, self.id).read().enable().bit_is_set() {
             if intflag.intersects(Interrupts::TERR) {
-                #[cfg(feature = "samd5x")]
+                #[cfg(any(
+                    feature = "samd51",
+                    feature = "same51",
+                    feature = "same53",
+                    feature = "same54"
+                ))]
                 if status.crcerr().bit_is_set() {
                     return Err(TransactionError::CRCError);
                 }
