@@ -1,6 +1,7 @@
 use core::u16;
 use core::ptr;
 use super::types::{
+    BeatSize,
     StepSize,
     BlockAction,
     EventOutput,
@@ -69,12 +70,12 @@ impl TransferDescriptor {
         self.descaddr
     }
 
-    /// Set the source address of the descriptor. This is a type erased pointer.
+    /// Sets the source address of the /last/ beat transfer in the block
     pub fn set_src_addr(&mut self, addr: *const ()) {
         self.srcaddr = addr;
     }
 
-    /// Set the destination address of the descriptor. This is a type erased pointer.
+    /// Sets the destination address of the /last/ beat transfer in the block
     pub fn set_dst_addr(&mut self, addr: *const ()) {
         self.dstaddr = addr;
     }
@@ -102,6 +103,24 @@ impl TransferDescriptor {
     /// Get the configured block transfer count.
     pub fn get_block_transfer_count(&self) -> u16 {
         self.btcnt
+    }
+
+    /// Return the beat size
+    pub fn get_beat_size(&self) -> BeatSize {
+        match (self.btctrl.bits() >> 8) & 0x03 {
+            0x00 => BeatSize::Byte,
+            0x01 => BeatSize::HWord,
+            0x02 => BeatSize::Word,
+            _ => BeatSize::Reserved,
+        }
+    }
+    /// Sets beat size
+    pub fn set_beat_size(&mut self, beat_size: BeatSize) {
+        match beat_size {
+            BeatSize::HWord => self.btctrl.set(RawBlockTransferCtrl::BEATSIZE_0, true),
+            BeatSize::Word => self.btctrl.set(RawBlockTransferCtrl::BEATSIZE_1, true),
+            _ => {}
+        }
     }
 
     /// Get the step size of the descriptor.

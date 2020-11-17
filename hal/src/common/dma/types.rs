@@ -736,22 +736,34 @@ impl BlockAction {
 
 /// Size of a DMA beat transfer memory access.
 pub enum BeatSize {
+    /// Each beat is 8 bits
     Byte = 0,
+    /// Each beat is 16 bits
     HWord,
-    Word
+    /// Each beat is 32 bits
+    Word,
+    Reserved,
 }
 
 /// Size of the address advancement step.
 #[derive(SmartDefault)]
 pub enum StepSize {
     #[default]
+    /// Next ADDR = ADDR + (bytes per beat) * 1
     X1 = 0,
+    /// Next ADDR = ADDR + (bytes per beat) * 2
     X2,
+    /// Next ADDR = ADDR + (bytes per beat) * 4
     X4,
+    /// Next ADDR = ADDR + (bytes per beat) * 8
     X8,
+    /// Next ADDR = ADDR + (bytes per beat) * 16
     X16,
+    /// Next ADDR = ADDR + (bytes per beat) * 32
     X32,
+    /// Next ADDR = ADDR + (bytes per beat) * 64
     X64,
+    /// Next ADDR = ADDR + (bytes per beat) * 128
     X128,
 }
 
