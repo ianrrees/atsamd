@@ -41,10 +41,13 @@ pub struct TransferDescriptor {
 impl Default for TransferDescriptor {
     fn default() -> Self {
         TransferDescriptor {
+            btctrl: RawBlockTransferCtrl::default(),
+            btcnt: 0,
             srcaddr: ptr::null(),
             dstaddr: ptr::null(),
             descaddr: ptr::null_mut(),
-            ..Default::default()
+            // TODO figure out why this fals...
+            // ..Default::default()
         }
     }
 }
@@ -114,6 +117,8 @@ impl TransferDescriptor {
             _ => BeatSize::Reserved,
         }
     }
+
+    // TODO add an error type, get rid of BeatSize::Reserved
     /// Sets beat size
     pub fn set_beat_size(&mut self, beat_size: BeatSize) {
         match beat_size {

@@ -238,8 +238,8 @@ impl Channel {
         reg.modify(|_, w| unsafe { w.trigsrc().bits(source as u8)});
     }
 
-    /// Get the trigger source for the channel.
-    pub fn get_source(&self) -> TriggerSource {
+    /// Set the source trigger for the DMA Channel.
+    pub fn set_source_u8(&mut self, source: u8) {
         #[cfg(any(
             feature = "samd51",
             feature = "same51",
@@ -250,8 +250,24 @@ impl Channel {
 
         #[cfg(any(feature = "samd11", feature = "samd21"))]
         let reg = channel_reg!(chctrlb, self.id);
-        reg.read().trigsrc().variant().into()
+        reg.modify(|_, w| unsafe { w.trigsrc().bits(source as u8)});
     }
+
+
+    // /// Get the trigger source for the channel.
+    // pub fn get_source(&self) -> TriggerSource {
+    //     #[cfg(any(
+    //         feature = "samd51",
+    //         feature = "same51",
+    //         feature = "same53",
+    //         feature = "same54"
+    //     ))]
+    //     let reg = channel_reg!(chctrla, self.id);
+
+    //     #[cfg(any(feature = "samd11", feature = "samd21"))]
+    //     let reg = channel_reg!(chctrlb, self.id);
+    //     reg.read().trigsrc().variant().into()
+    // }
 
     /// Set the priority level of the channel.
     pub fn set_priority(&mut self, priority: Priority) {

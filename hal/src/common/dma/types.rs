@@ -2,13 +2,23 @@
 use smart_default::SmartDefault;
 
 use crate::target_device::generic::Variant;
+
 #[cfg(any(
     feature = "samd51",
     feature = "same51",
     feature = "same53",
     feature = "same54"
 ))]
-use crate::target_device::dmac::chctrla::{TRIGACT_A, BURSTLEN_A, THRESHOLD_A, TRIGSRC_A};
+use crate::target_device::dmac::chctrla::{TRIGACT_A, BURSTLEN_A, THRESHOLD_A};
+
+#[cfg(any(
+    feature = "samd51",
+    feature = "same51",
+    feature = "same53",
+    feature = "same54"
+))]
+pub use crate::target_device::dmac::chctrla::TRIGSRC_A as TriggerSource;
+
 #[cfg(any(
     feature = "samd51",
     feature = "same51",
@@ -16,6 +26,7 @@ use crate::target_device::dmac::chctrla::{TRIGACT_A, BURSTLEN_A, THRESHOLD_A, TR
     feature = "same54"
 ))]
 use crate::target_device::dmac::chprilvl::PRILVL_A;
+
 #[cfg(any(
     feature = "samd51",
     feature = "same51",
@@ -23,8 +34,13 @@ use crate::target_device::dmac::chprilvl::PRILVL_A;
     feature = "same54"
 ))]
 use crate::target_device::dmac::prictrl0::{QOS0_A, QOS1_A, QOS2_A, QOS3_A};
+
 #[cfg(any(feature = "samd11", feature = "samd21"))]
-use crate::target_device::dmac::chctrlb::{TRIGACT_A, TRIGSRC_A, LVL_A as PRILVL_A};
+use crate::target_device::dmac::chctrlb::{TRIGACT_A, LVL_A as PRILVL_A};
+
+#[cfg(any(feature = "samd11", feature = "samd21"))]
+pub use crate::target_device::dmac::chctrlb::TRIGSRC_A as TriggerSource;
+
 #[cfg(any(feature = "samd11", feature = "samd21"))]
 use crate::target_device::dmac::qosctrl::{DQOS_A, FQOS_A, WRBQOS_A};
 
@@ -474,185 +490,98 @@ impl From<Variant<u8, TRIGACT_A>> for TriggerAction {
     }
 }
 
-/// Trigger source for a channel.
-pub enum TriggerSource {
-    Disable = 0,
-    RtcTimestamp,
-    DsuDcc0,
-    DsuDcc1,
-    Sercom0Rx,
-    Sercom0Tx,
-    Sercom1Rx,
-    Sercom1Tx,
-    Sercom2Rx,
-    Sercom3Tx,
-    Sercom4Rx,
-    Sercom4Tx,
-    Sercom5Rx,
-    Sercom5Tx,
-    Sercom6Rx,
-    Sercom6Tx,
-    Sercom7Rx,
-    Sercom7Tx,
-    Can0Debug,
-    Can1Debug,
-    Tcc0Ovf,
-    Tcc0Mc0,
-    Tcc0Mc1,
-    Tcc0Mc2,
-    Tcc0Mc3,
-    Tcc0Mc4,
-    Tcc0Mc5,
-    Tcc1Ovf,
-    Tcc1Mc0,
-    Tcc1Mc1,
-    Tcc1Mc2,
-    Tcc1Mc3,
-    Tcc2Ovf,
-    Tcc2Mc0,
-    Tcc2Mc1,
-    Tcc2Mc2,
-    Tcc3Ovf,
-    Tcc3Mc0,
-    Tcc3Mc1,
-    Tcc4Ovf,
-    Tcc4Mc0,
-    Tcc4Mc1,
-    Tc0Ovf,
-    Tc0Mc0,
-    Tc0Mc1,
-    Tc1Ovf,
-    Tc1Mc0,
-    Tc1Mc1,
-    Tc2Ovf,
-    Tc2Mc0,
-    Tc2Mc1,
-    Tc3Ovf,
-    Tc3Mc0,
-    Tc3Mc1,
-    Tc4Ovf,
-    Tc4Mc0,
-    Tc4Mc1,
-    Tc5Ovf,
-    Tc5Mc0,
-    Tc5Mc1,
-    Tc6Ovf,
-    Tc6Mc0,
-    Tc6Mc1,
-    Tc7Ovf,
-    Tc7Mc0,
-    Tc7Mc1,
-    Adc0ResRdy,
-    Adc0Seq,
-    Adc1ResRdy,
-    Adc1Seq,
-    Dac0Empty,
-    Dac1Empty,
-    Dac0ResRdy,
-    Dac1ResRdy,
-    I2sRx0,
-    I2sRx1,
-    I2sTx0,
-    I2sTx1,
-    PccRx,
-    AesWr,
-    AesRd,
-    QspiRx,
-    QspiTx,
-}
-
-impl From<Variant<u8, TRIGSRC_A>> for TriggerSource {
-    fn from(value: Variant<u8, TRIGSRC_A>) -> TriggerSource {
-        use self::TriggerSource::*;
-        use self::Variant::*;
-        match value {
-            Val(TRIGSRC_A::DISABLE) => Disable,
-            Res(1) => RtcTimestamp,
-            Res(2) => DsuDcc0,
-            Res(3) => DsuDcc1,
-            Res(4) => Sercom0Rx,
-            Res(5) => Sercom0Tx,
-            Res(6) => Sercom1Rx,
-            Res(7) => Sercom1Tx,
-            Res(8) => Sercom2Rx,
-            Res(9) => Sercom3Tx,
-            Res(10) => Sercom4Rx,
-            Res(11) => Sercom4Tx,
-            Res(12) => Sercom5Rx,
-            Res(13) => Sercom5Tx,
-            Res(14) => Sercom6Rx,
-            Res(15) => Sercom6Tx,
-            Res(16) => Sercom7Rx,
-            Res(17) => Sercom7Tx,
-            Res(18) => Can0Debug,
-            Res(19) => Can1Debug,
-            Res(20) => Tcc0Ovf,
-            Res(21) => Tcc0Mc0,
-            Res(22) => Tcc0Mc1,
-            Res(23) => Tcc0Mc2,
-            Res(24) => Tcc0Mc3,
-            Res(25) => Tcc0Mc4,
-            Res(26) => Tcc0Mc5,
-            Res(27) => Tcc1Ovf,
-            Res(28) => Tcc1Mc0,
-            Res(29) => Tcc1Mc1,
-            Res(30) => Tcc1Mc2,
-            Res(31) => Tcc1Mc3,
-            Res(32) => Tcc2Ovf,
-            Res(33) => Tcc2Mc0,
-            Res(34) => Tcc2Mc1,
-            Res(35) => Tcc2Mc2,
-            Res(36) => Tcc3Ovf,
-            Res(37) => Tcc3Mc0,
-            Res(38) => Tcc3Mc1,
-            Res(39) => Tcc4Ovf,
-            Res(40) => Tcc4Mc0,
-            Res(41) => Tcc4Mc1,
-            Res(42) => Tc0Ovf,
-            Res(43) => Tc0Mc0,
-            Res(44) => Tc0Mc1,
-            Res(45) => Tc1Ovf,
-            Res(46) => Tc1Mc0,
-            Res(47) => Tc1Mc1,
-            Res(48) => Tc2Ovf,
-            Res(49) => Tc2Mc0,
-            Res(50) => Tc2Mc1,
-            Res(51) => Tc3Ovf,
-            Res(52) => Tc3Mc0,
-            Res(53) => Tc3Mc1,
-            Res(54) => Tc4Ovf,
-            Res(55) => Tc4Mc0,
-            Res(56) => Tc4Mc1,
-            Res(57) => Tc5Ovf,
-            Res(58) => Tc5Mc0,
-            Res(59) => Tc5Mc1,
-            Res(60) => Tc6Ovf,
-            Res(61) => Tc6Mc0,
-            Res(62) => Tc6Mc1,
-            Res(63) => Tc7Ovf,
-            Res(64) => Tc7Mc0,
-            Res(65) => Tc7Mc1,
-            Res(66) => Adc0ResRdy,
-            Res(67) => Adc0Seq,
-            Res(68) => Adc1ResRdy,
-            Res(69) => Adc1Seq,
-            Res(70) => Dac0Empty,
-            Res(71) => Dac1Empty,
-            Res(72) => Dac0ResRdy,
-            Res(73) => Dac1ResRdy,
-            Res(74) => I2sRx0,
-            Res(75) => I2sRx1,
-            Res(76) => I2sTx0,
-            Res(77) => I2sTx1,
-            Res(78) => PccRx,
-            Res(79) => AesWr,
-            Res(80) => AesRd,
-            Res(81) => QspiRx,
-            Res(82) => QspiTx,
-            Res(_) => Disable,
-        }
-    }
-}
+// impl From<Variant<u8, TRIGSRC_A>> for TriggerSource {
+//     fn from(value: Variant<u8, TRIGSRC_A>) -> TriggerSource {
+//         use self::TriggerSource::*;
+//         use self::Variant::*;
+//         match value {
+//             Val(TRIGSRC_A::DISABLE) => Disable,
+//             Res(1) => RtcTimestamp,
+//             Res(2) => DsuDcc0,
+//             Res(3) => DsuDcc1,
+//             Res(4) => Sercom0Rx,
+//             Res(5) => Sercom0Tx,
+//             Res(6) => Sercom1Rx,
+//             Res(7) => Sercom1Tx,
+//             Res(8) => Sercom2Rx,
+//             Res(9) => Sercom3Tx,
+//             Res(10) => Sercom4Rx,
+//             Res(11) => Sercom4Tx,
+//             Res(12) => Sercom5Rx,
+//             Res(13) => Sercom5Tx,
+//             Res(14) => Sercom6Rx,
+//             Res(15) => Sercom6Tx,
+//             Res(16) => Sercom7Rx,
+//             Res(17) => Sercom7Tx,
+//             Res(18) => Can0Debug,
+//             Res(19) => Can1Debug,
+//             Res(20) => Tcc0Ovf,
+//             Res(21) => Tcc0Mc0,
+//             Res(22) => Tcc0Mc1,
+//             Res(23) => Tcc0Mc2,
+//             Res(24) => Tcc0Mc3,
+//             Res(25) => Tcc0Mc4,
+//             Res(26) => Tcc0Mc5,
+//             Res(27) => Tcc1Ovf,
+//             Res(28) => Tcc1Mc0,
+//             Res(29) => Tcc1Mc1,
+//             Res(30) => Tcc1Mc2,
+//             Res(31) => Tcc1Mc3,
+//             Res(32) => Tcc2Ovf,
+//             Res(33) => Tcc2Mc0,
+//             Res(34) => Tcc2Mc1,
+//             Res(35) => Tcc2Mc2,
+//             Res(36) => Tcc3Ovf,
+//             Res(37) => Tcc3Mc0,
+//             Res(38) => Tcc3Mc1,
+//             Res(39) => Tcc4Ovf,
+//             Res(40) => Tcc4Mc0,
+//             Res(41) => Tcc4Mc1,
+//             Res(42) => Tc0Ovf,
+//             Res(43) => Tc0Mc0,
+//             Res(44) => Tc0Mc1,
+//             Res(45) => Tc1Ovf,
+//             Res(46) => Tc1Mc0,
+//             Res(47) => Tc1Mc1,
+//             Res(48) => Tc2Ovf,
+//             Res(49) => Tc2Mc0,
+//             Res(50) => Tc2Mc1,
+//             Res(51) => Tc3Ovf,
+//             Res(52) => Tc3Mc0,
+//             Res(53) => Tc3Mc1,
+//             Res(54) => Tc4Ovf,
+//             Res(55) => Tc4Mc0,
+//             Res(56) => Tc4Mc1,
+//             Res(57) => Tc5Ovf,
+//             Res(58) => Tc5Mc0,
+//             Res(59) => Tc5Mc1,
+//             Res(60) => Tc6Ovf,
+//             Res(61) => Tc6Mc0,
+//             Res(62) => Tc6Mc1,
+//             Res(63) => Tc7Ovf,
+//             Res(64) => Tc7Mc0,
+//             Res(65) => Tc7Mc1,
+//             Res(66) => Adc0ResRdy,
+//             Res(67) => Adc0Seq,
+//             Res(68) => Adc1ResRdy,
+//             Res(69) => Adc1Seq,
+//             Res(70) => Dac0Empty,
+//             Res(71) => Dac1Empty,
+//             Res(72) => Dac0ResRdy,
+//             Res(73) => Dac1ResRdy,
+//             Res(74) => I2sRx0,
+//             Res(75) => I2sRx1,
+//             Res(76) => I2sTx0,
+//             Res(77) => I2sTx1,
+//             Res(78) => PccRx,
+//             Res(79) => AesWr,
+//             Res(80) => AesRd,
+//             Res(81) => QspiRx,
+//             Res(82) => QspiTx,
+//             Res(_) => Disable,
+//         }
+//     }
+// }
 
 /// Number of beats before destination writes occur.
 #[cfg(any(
