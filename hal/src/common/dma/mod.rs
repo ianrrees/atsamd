@@ -406,8 +406,8 @@ impl<T: 'static + DmaStorage> DMAController<T> {
         Interrupts::from_bits_truncate((self.dmac.intpend.read().bits() & 0x700).to_be_bytes()[0])
     }
 
-    /// Set the interrupt flags of a particular channel.
-    pub fn set_channel_pending_interrupts(&mut self, id: u8, int: Interrupts) {
+    /// Clear the interrupt flags of a particular channel.
+    pub fn clear_channel_pending_interrupts(&mut self, id: u8, int: Interrupts) {
         self.dmac.intpend.write(|w| unsafe { w.bits(u16::from_be_bytes([int.bits(), id])) })
     }
 
