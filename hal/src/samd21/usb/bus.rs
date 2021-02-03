@@ -16,7 +16,6 @@ use crate::usb::devicedesc::DeviceDescBank;
 use core::cell::{Ref, RefCell, RefMut};
 use core::marker::PhantomData;
 use core::mem;
-use cortex_m::interrupt::{free as disable_interrupts, Mutex};
 use cortex_m::singleton;
 use usb_device::bus::PollResult;
 use usb_device::endpoint::{EndpointAddress, EndpointType};
@@ -205,7 +204,7 @@ struct Inner {
 }
 
 pub struct UsbBus {
-    inner: Mutex<RefCell<Inner>>,
+    inner: RefCell<Inner>,
 }
 
 /// Generate a method that allows returning the endpoint register
@@ -600,7 +599,7 @@ impl UsbBus {
         };
 
         Self {
-            inner: Mutex::new(RefCell::new(inner)),
+            inner: RefCell::new(inner),
         }
     }
 }
@@ -1006,19 +1005,19 @@ impl Inner {
 
 impl usb_device::bus::UsbBus for UsbBus {
     fn enable(&mut self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().enable())
+        self.inner.borrow_mut().enable()
     }
 
     fn reset(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().protocol_reset())
+        self.inner.borrow().protocol_reset()
     }
 
     fn suspend(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().suspend())
+        self.inner.borrow().suspend()
     }
 
     fn resume(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().resume())
+        self.inner.borrow().resume()
     }
 
     fn alloc_ep(
@@ -1029,38 +1028,36 @@ impl usb_device::bus::UsbBus for UsbBus {
         max_packet_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
-        disable_interrupts(|cs| {
-            self.inner.borrow(cs).borrow_mut().alloc_ep(
-                dir,
-                addr,
-                ep_type,
-                max_packet_size,
-                interval,
-            )
-        })
+        self.inner.borrow_mut().alloc_ep(
+            dir,
+            addr,
+            ep_type,
+            max_packet_size,
+            interval,
+        )
     }
 
     fn set_device_address(&self, addr: u8) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().set_device_address(addr))
+        self.inner.borrow().set_device_address(addr)
     }
 
     fn poll(&self) -> PollResult {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().poll())
+        self.inner.borrow().poll()
     }
 
     fn write(&self, ep: EndpointAddress, buf: &[u8]) -> UsbResult<usize> {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().write(ep, buf))
+        self.inner.borrow().write(ep, buf)
     }
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().read(ep, buf))
+        self.inner.borrow().read(ep, buf)
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().set_stalled(ep, stalled))
+        self.inner.borrow().set_stalled(ep, stalled)
     }
 
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().is_stalled(ep))
+        self.inner.borrow().is_stalled(ep)
     }
 }
