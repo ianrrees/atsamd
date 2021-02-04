@@ -203,8 +203,10 @@ struct Inner {
     buffers: RefCell<BufferAllocator>,
 }
 
+unsafe impl Sync for Inner {}
+
 pub struct UsbBus {
-    inner: RefCell<Inner>,
+    inner: Inner,
 }
 
 /// Generate a method that allows returning the endpoint register
@@ -591,7 +593,7 @@ impl UsbBus {
         };
 
         Self {
-            inner: RefCell::new(inner),
+            inner,
         }
     }
 }
@@ -949,19 +951,19 @@ impl UsbBus {
 
 impl usb_device::bus::UsbBus for UsbBus {
     fn enable(&mut self) {
-        self.inner.borrow_mut().enable()
+        self.inner.enable()
     }
 
     fn reset(&self) {
-        self.inner.borrow().protocol_reset()
+        self.inner.protocol_reset()
     }
 
     fn suspend(&self) {
-        self.inner.borrow().suspend()
+        self.inner.suspend()
     }
 
     fn resume(&self) {
-        self.inner.borrow().resume()
+        self.inner.resume()
     }
 
     fn alloc_ep(
@@ -972,7 +974,7 @@ impl usb_device::bus::UsbBus for UsbBus {
         max_packet_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
-        self.inner.borrow_mut().alloc_ep(
+        self.inner.alloc_ep(
             dir,
             addr,
             ep_type,
@@ -982,26 +984,26 @@ impl usb_device::bus::UsbBus for UsbBus {
     }
 
     fn set_device_address(&self, addr: u8) {
-        self.inner.borrow().set_device_address(addr)
+        self.inner.set_device_address(addr)
     }
 
     fn poll(&self) -> PollResult {
-        self.inner.borrow().poll()
+        self.inner.poll()
     }
 
     fn write(&self, ep: EndpointAddress, buf: &[u8]) -> UsbResult<usize> {
-        self.inner.borrow().write(ep, buf)
+        self.inner.write(ep, buf)
     }
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
-        self.inner.borrow().read(ep, buf)
+        self.inner.read(ep, buf)
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
-        self.inner.borrow().set_stalled(ep, stalled)
+        self.inner.set_stalled(ep, stalled)
     }
 
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
-        self.inner.borrow().is_stalled(ep)
+        self.inner.is_stalled(ep)
     }
 }
