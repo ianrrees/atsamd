@@ -17,6 +17,7 @@ use core::cell::{Ref, RefCell, RefMut};
 use core::marker::PhantomData;
 use core::mem;
 use cortex_m::singleton;
+use embedded_dma::{ReadBuffer};
 use usb_device::bus::PollResult;
 use usb_device::endpoint::{EndpointAddress, EndpointType};
 use usb_device::{Result as UsbResult, UsbDirection, UsbError};
@@ -345,6 +346,31 @@ impl<'a> Bank<'a, InBank> {
         desc.set_byte_count(size as u16);
 
         Ok(size)
+    }
+
+    /// Prepares to transfer 'size_bytes' bytes from supplied buffer to the host.
+    /// 'buf' must remain valid until is_transfer_complete() returns true.
+    pub fn write_dma<T: ReadBuffer>(&mut self, buf: T, size_bytes: usize) -> UsbResult<()> {
+        let (buf_ptr, buf_len_words) = unsafe {
+            buf.read_buffer()
+        };
+
+        // The data buffer pointed to by the descriptor bank must be 32-bit aligned
+        if buf_ptr as usize & 0x1F != 0 {
+            return Err(UsbError::Unsupported);
+        }
+
+        if mem::size_of::<T::Word>() * buf_len_words < size_bytes {
+            return Err(UsbError::BufferOverflow);
+        }
+
+        let desc = self.desc_bank();
+
+        desc.set_address(buf_ptr as *mut u8);
+        desc.set_multi_packet_size(0);
+        desc.set_byte_count(size_bytes as u16);
+
+        Ok(())
     }
 
     fn is_stalled(&self) -> bool {
@@ -899,6 +925,21 @@ impl Inner {
         size
     }
 
+    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+        let mut bank = self.bank1(ep_addr)?;
+
+        if bank.is_ready() {
+            // Host hasn't read existing data
+            return Err(UsbError::WouldBlock);
+        }
+
+        bank.write_dma(buf, size_bytes)?;
+        bank.clear_transfer_complete();
+        bank.set_ready(true); // ready to be sent
+
+        Ok(())
+    }
+
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         let mut bank = self.bank0(ep)?;
         let rxstp = bank.received_setup_interrupt();
@@ -993,6 +1034,10 @@ impl usb_device::bus::UsbBus for UsbBus {
 
     fn write(&self, ep: EndpointAddress, buf: &[u8]) -> UsbResult<usize> {
         self.inner.write(ep, buf)
+    }
+
+    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+        self.inner.start_write_dma(ep_addr, buf, size_bytes)
     }
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
