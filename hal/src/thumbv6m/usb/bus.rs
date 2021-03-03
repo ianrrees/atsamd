@@ -1006,6 +1006,14 @@ impl Inner {
         Ok(())
     }
 
+    fn can_write(&self, ep_addr: EndpointAddress) -> bool {
+        if let Ok(bank) = self.bank1(ep_addr) {
+            !bank.is_ready()
+        } else {
+            false
+        }
+    }
+
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         let mut bank = self.bank0(ep)?;
         let rxstp = bank.received_setup_interrupt();
@@ -1107,6 +1115,10 @@ impl usb_device::bus::UsbBus for UsbBus {
 
     fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
         self.inner.start_write_dma(ep_addr, buf, size_bytes)
+    }
+
+    fn can_write(&self, ep_addr: EndpointAddress) -> bool {
+        self.inner.can_write(ep_addr)
     }
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
