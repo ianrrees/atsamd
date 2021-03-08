@@ -17,8 +17,8 @@ use core::cell::{Ref, RefCell, RefMut};
 use core::marker::PhantomData;
 use core::mem;
 use cortex_m::singleton;
-use embedded_dma::{ReadBuffer};
-use usb_device::bus::PollResult;
+use embedded_dma::{ReadBuffer, WriteBuffer};
+use usb_device::bus::{PollResult, UsbReadBuffer};
 use usb_device::endpoint::{EndpointAddress, EndpointType};
 use usb_device::{Result as UsbResult, UsbDirection, UsbError};
 
@@ -242,6 +242,7 @@ struct Bank<'a, T> {
     address: EndpointAddress,
     usb: &'a DEVICE,
     desc: RefMut<'a, super::Descriptors>,
+    loaned_buffer_size: usize, // TODO roll this in to the OutBank?
     _phantom: PhantomData<T>,
     endpoints: Ref<'a, AllEndpoints>,
 }
@@ -475,6 +476,31 @@ impl<'a> Bank<'a, OutBank> {
         Ok(size)
     }
 
+    pub fn swap_read_dma<WB: WriteBuffer>(&mut self, mut buf: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+        let (new_ptr, new_size) = unsafe { buf.write_buffer() };
+
+        if self.desc_bank().get_endpoint_size() as usize > new_size {
+            // Not strictly an overflow, but captures the spirit of the problem
+            return Err(UsbError::BufferOverflow);
+        }
+        
+        let old_buf = UsbReadBuffer {
+            pointer: self.desc_bank().get_address(),
+            size: self.loaned_buffer_size,
+        };
+
+        self.loaned_buffer_size = new_size;
+
+        let desc = self.desc_bank();
+
+        let read_size = desc.get_byte_count() as usize;
+        desc.set_address(new_ptr as *mut u8);
+        desc.set_byte_count(0);
+        desc.set_multi_packet_size(0);
+
+        Ok((old_buf, read_size))
+    }
+
     fn is_stalled(&self) -> bool {
         self.epintflag(self.index()).read().stall0().bit()
     }
@@ -574,6 +600,7 @@ impl Inner {
             address: ep,
             usb: self.usb(),
             desc: self.desc.borrow_mut(),
+            loaned_buffer_size: 0,
             endpoints,
             _phantom: PhantomData,
         })
@@ -592,6 +619,7 @@ impl Inner {
             address: ep,
             usb: self.usb(),
             desc: self.desc.borrow_mut(),
+            loaned_buffer_size: 0,
             endpoints,
             _phantom: PhantomData,
         })
@@ -968,6 +996,26 @@ impl Inner {
         }
     }
 
+    fn swap_read_dma<WB: WriteBuffer>(&self, ep: EndpointAddress, buffer: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+        let mut bank = self.bank0(ep)?;
+        let rxstp = bank.received_setup_interrupt();
+
+        if bank.is_ready() || rxstp {
+            let prev_read = bank.swap_read_dma(buffer)?;
+
+            if rxstp {
+                bank.clear_received_setup_interrupt();
+            }
+
+            bank.clear_transfer_complete();
+            bank.set_ready(false);
+
+            Ok(prev_read)
+        } else {
+            Err(UsbError::WouldBlock)
+        }
+    }
+
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
         if ep.is_out() {
             self.bank0(ep).unwrap().is_stalled()
@@ -1054,6 +1102,10 @@ impl usb_device::bus::UsbBus for UsbBus {
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         self.inner.read(ep, buf)
+    }
+
+    fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> UsbResult<(UsbReadBuffer, usize)> {
+        self.inner.swap_read_dma(ep_addr, buffer)
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
