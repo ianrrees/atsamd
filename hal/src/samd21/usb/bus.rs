@@ -45,7 +45,7 @@ impl From<EndpointType> for EndpointTypeBits {
     fn from(ep_type: EndpointType) -> EndpointTypeBits {
         match ep_type {
             EndpointType::Control => EndpointTypeBits::Control,
-            EndpointType::Isochronous => EndpointTypeBits::Isochronous,
+            EndpointType::Isochronous(_) => EndpointTypeBits::Isochronous,
             EndpointType::Bulk => EndpointTypeBits::Bulk,
             EndpointType::Interrupt => EndpointTypeBits::Interrupt,
         }
