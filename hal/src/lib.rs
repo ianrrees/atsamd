@@ -1,5 +1,9 @@
 #![no_std]
 
+#[macro_use]
+extern crate bitflags;
+extern crate smart_default;
+
 pub extern crate embedded_hal as hal;
 
 pub use paste;
