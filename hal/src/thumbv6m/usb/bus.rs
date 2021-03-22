@@ -16,6 +16,7 @@ use crate::usb::devicedesc::DeviceDescBank;
 use core::cell::{Ref, RefCell, RefMut};
 use core::marker::PhantomData;
 use core::mem;
+use core::ptr;
 use cortex_m::singleton;
 use embedded_dma::{ReadBuffer, WriteBuffer};
 use usb_device::bus::{PollResult, UsbReadBuffer};
@@ -858,12 +859,14 @@ impl Inner {
         addr: Option<EndpointAddress>,
         ep_type: EndpointType,
         max_packet_size: u16,
+        buffer_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
         // The USB hardware encodes the maximum packet size in 3 bits, so
         // reserve enough buffer that the hardware won't overwrite it even if
         // the other side issues an overly-long transfer.
-        let allocated_size = match max_packet_size {
+        let buffer_size = match buffer_size {
+            0 => 0,
             1..=8 => 8,
             9..=16 => 16,
             17..=32 => 32,
@@ -875,14 +878,19 @@ impl Inner {
             _ => return Err(UsbError::Unsupported),
         };
 
-        let buffer = self.buffers.borrow_mut().allocate_buffer(allocated_size)?;
+        let buffer = if buffer_size > 0 {
+            self.buffers.borrow_mut().allocate_buffer(buffer_size)?
+        } else {
+            ptr::null_mut()
+        };
 
         dbgprint!(
-            "UsbBus::alloc_ep dir={:?} addr={:?} type={:?} max_packet_size={} interval={}\n",
+            "UsbBus::alloc_ep dir={:?} addr={:?} type={:?} max_packet_size={} buffer_size={} interval={}\n",
             dir,
             addr,
             ep_type,
             max_packet_size,
+            buffer_size,
             interval
         );
 
@@ -897,7 +905,7 @@ impl Inner {
             dir,
             idx,
             ep_type,
-            allocated_size,
+            buffer_size,
             max_packet_size,
             interval,
             buffer,
@@ -1138,6 +1146,7 @@ impl usb_device::bus::UsbBus for UsbBus {
         addr: Option<EndpointAddress>,
         ep_type: EndpointType,
         max_packet_size: u16,
+        buffer_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
         self.inner.alloc_ep(
@@ -1145,6 +1154,7 @@ impl usb_device::bus::UsbBus for UsbBus {
             addr,
             ep_type,
             max_packet_size,
+            buffer_size,
             interval,
         )
     }
