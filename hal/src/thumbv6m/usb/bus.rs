@@ -59,7 +59,7 @@ struct EPConfig {
     ep_type: EndpointTypeBits,
     allocated_size: u16,
     max_packet_size: u16,
-    addr: usize,
+    addr: usize, // TODO shouldn't this be a pointer?
 }
 
 impl EPConfig {
@@ -243,7 +243,7 @@ struct Bank<'a, T> {
     address: EndpointAddress,
     usb: &'a DEVICE,
     desc: RefMut<'a, super::Descriptors>,
-    loaned_buffer_size: usize, // TODO roll this in to the OutBank?
+    loaned_buffer_size: usize, // TODO roll this in to the OutBank?  EPConfig::allocated_size?
     _phantom: PhantomData<T>,
     endpoints: Ref<'a, AllEndpoints>,
 }
