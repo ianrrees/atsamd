@@ -502,6 +502,10 @@ impl<'a> Bank<'a, OutBank> {
         Ok((old_buf, read_size))
     }
 
+    pub fn can_read(&mut self) -> Option<usize> {
+        Some(self.desc_bank().get_byte_count() as usize)
+    }
+
     fn is_stalled(&self) -> bool {
         self.epintflag(self.index()).read().stall0().bit()
     }
@@ -1023,6 +1027,18 @@ impl Inner {
         }
     }
 
+    fn can_read(&self, ep: EndpointAddress) -> Option<usize> {
+        if let Ok(mut bank) = self.bank0(ep) {
+            let rxstp = bank.received_setup_interrupt();
+
+            if bank.is_ready() || rxstp {
+                return bank.can_read();
+            }
+        }
+
+        None
+    }
+
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
         if ep.is_out() {
             self.bank0(ep).unwrap().is_stalled()
@@ -1115,6 +1131,10 @@ impl usb_device::bus::UsbBus for UsbBus {
 
     fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> UsbResult<(UsbReadBuffer, usize)> {
         self.inner.swap_read_dma(ep_addr, buffer)
+    }
+
+    fn can_read(&self, ep: EndpointAddress) -> Option<usize> {
+        self.inner.can_read(ep)
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
