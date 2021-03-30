@@ -863,14 +863,12 @@ impl Inner {
         addr: Option<EndpointAddress>,
         ep_type: EndpointType,
         max_packet_size: u16,
-        buffer_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
         // The USB hardware encodes the maximum packet size in 3 bits, so
         // reserve enough buffer that the hardware won't overwrite it even if
         // the other side issues an overly-long transfer.
-        let buffer_size = match buffer_size {
-            0 => 0,
+        let buffer_size = match max_packet_size {
             1..=8 => 8,
             9..=16 => 16,
             17..=32 => 32,
@@ -882,19 +880,14 @@ impl Inner {
             _ => return Err(UsbError::Unsupported),
         };
 
-        let buffer = if buffer_size > 0 {
-            self.buffers.borrow_mut().allocate_buffer(buffer_size)?
-        } else {
-            ptr::null_mut()
-        };
+        let buffer = self.buffers.borrow_mut().allocate_buffer(buffer_size)?;
 
         dbgprint!(
-            "UsbBus::alloc_ep dir={:?} addr={:?} type={:?} max_packet_size={} buffer_size={} interval={}\n",
+            "UsbBus::alloc_ep dir={:?} addr={:?} type={:?} max_packet_size={} interval={}\n",
             dir,
             addr,
             ep_type,
             max_packet_size,
-            buffer_size,
             interval
         );
 
@@ -916,6 +909,88 @@ impl Inner {
         )?;
 
         dbgprint!("alloc_ep -> {:?}\n", addr);
+
+        Ok(addr)
+    }
+
+    fn alloc_dma_out_endpoint<Buf: WriteBuffer>(
+        &mut self,
+        addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+        mut buffer: Buf,
+    ) -> UsbResult<EndpointAddress> {
+        let (buf_ptr, buf_size_words) = unsafe { buffer.write_buffer() };
+        let buf_size_bytes = (buf_size_words * mem::size_of::<Buf::Word>()) as u16;
+
+        if buf_size_bytes < max_packet_size {
+            return Err(UsbError::BufferOverflow);
+        }
+
+        dbgprint!(
+            "UsbBus::alloc_dma_out_endpoint addr={:?} type={:?} max_packet_size={} interval={}\n",
+            addr,
+            ep_type,
+            max_packet_size,
+            interval
+        );
+
+        let mut endpoints = self.endpoints.borrow_mut();
+
+        let idx = match addr {
+            None => endpoints.find_free_endpoint(UsbDirection::Out)?,
+            Some(addr) => addr.index(),
+        };
+
+        let addr = endpoints.allocate_endpoint(
+            UsbDirection::Out,
+            idx,
+            ep_type,
+            buf_size_bytes,
+            max_packet_size,
+            interval,
+            buf_ptr as *mut u8,
+        )?;
+
+        dbgprint!("alloc_dma_out_endpoint -> {:?}\n", addr);
+
+        Ok(addr)
+    }
+
+    fn alloc_dma_in_endpoint(
+        &mut self,
+        addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+    ) -> UsbResult<EndpointAddress> {
+        dbgprint!(
+            "UsbBus::alloc_dma_in_endpoint addr={:?} type={:?} max_packet_size={} interval={}\n",
+            addr,
+            ep_type,
+            max_packet_size,
+            interval
+        );
+
+        let mut endpoints = self.endpoints.borrow_mut();
+
+        let idx = match addr {
+            None => endpoints.find_free_endpoint(UsbDirection::In)?,
+            Some(addr) => addr.index(),
+        };
+
+        let addr = endpoints.allocate_endpoint(
+            UsbDirection::In,
+            idx,
+            ep_type,
+            0,
+            max_packet_size,
+            interval,
+            ptr::null_mut(),
+        )?;
+
+        dbgprint!("alloc_dma_in_endpoint -> {:?}\n", addr);
 
         Ok(addr)
     }
@@ -1162,7 +1237,6 @@ impl usb_device::bus::UsbBus for UsbBus {
         addr: Option<EndpointAddress>,
         ep_type: EndpointType,
         max_packet_size: u16,
-        buffer_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
         self.inner.alloc_ep(
@@ -1170,7 +1244,38 @@ impl usb_device::bus::UsbBus for UsbBus {
             addr,
             ep_type,
             max_packet_size,
-            buffer_size,
+            interval,
+        )
+    }
+
+    fn alloc_dma_out_endpoint<Buf: WriteBuffer>(
+        &mut self,
+        ep_addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+        buffer: Buf,
+    ) -> UsbResult<EndpointAddress> {
+        self.inner.alloc_dma_out_endpoint(
+            ep_addr,
+            ep_type,
+            max_packet_size,
+            interval,
+            buffer,
+        )
+    }
+
+    fn alloc_dma_in_endpoint(
+        &mut self,
+        ep_addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+    ) -> UsbResult<EndpointAddress> {
+        self.inner.alloc_dma_in_endpoint(
+            ep_addr,
+            ep_type,
+            max_packet_size,
             interval,
         )
     }
