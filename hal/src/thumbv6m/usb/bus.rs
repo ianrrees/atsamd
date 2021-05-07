@@ -485,9 +485,10 @@ impl<'a> Bank<'a, OutBank> {
     }
 
     pub fn swap_read_dma<WB: WriteBuffer>(&mut self, mut buf: WB) -> UsbResult<(UsbReadBuffer, usize)> {
-        let (new_ptr, new_size) = unsafe { buf.write_buffer() };
+        let (new_ptr, buf_size_words) = unsafe { buf.write_buffer() };
+        let buf_size_bytes = buf_size_words * mem::size_of::<WB::Word>();
 
-        if self.desc_bank().get_endpoint_size() as usize > new_size {
+        if self.desc_bank().get_endpoint_size() as usize > buf_size_bytes {
             // Not strictly an overflow, but captures the spirit of the problem
             return Err(UsbError::BufferOverflow);
         }
@@ -497,7 +498,7 @@ impl<'a> Bank<'a, OutBank> {
             size: self.loaned_buffer_size,
         };
 
-        self.loaned_buffer_size = new_size;
+        self.loaned_buffer_size = buf_size_bytes;
 
         let desc = self.desc_bank();
 
