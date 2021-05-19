@@ -488,6 +488,11 @@ impl<'a> Bank<'a, OutBank> {
         let (new_ptr, buf_size_words) = unsafe { buf.write_buffer() };
         let buf_size_bytes = buf_size_words * mem::size_of::<WB::Word>();
 
+        // Isochronous transfers might specify a maximum packet size less than
+        // the endpoint hardware is configured for.  It's important to ensure
+        // the supplied buffer is big enough to hold the potentially-larger size
+        // from the endpoint hardware, so that a misbehaving USB host (or
+        // transmission error) doesn't cause a buffer overrun.
         if self.desc_bank().get_endpoint_size() as usize > buf_size_bytes {
             // Not strictly an overflow, but captures the spirit of the problem
             return Err(UsbError::BufferOverflow);
