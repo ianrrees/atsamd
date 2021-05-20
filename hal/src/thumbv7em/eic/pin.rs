@@ -1,12 +1,28 @@
-use crate::gpio::v2::{self, AlternateA, AnyPin, PinId, PinMode};
-use crate::gpio::{self, IntoFunction, Pin, Port};
+use crate::gpio::{
+    self, v2::AnyPin, v2::FloatingInterrupt, v2::Pin, v2::PinId, v2::PinMode,
+    v2::PullDownInterrupt, v2::PullUpInterrupt, Port,
+};
 use crate::target_device;
 
-/// The EicPin trait makes it more ergonomic to convert a gpio pin into an EIC
-/// pin. You should not implement this trait for yourself; only the
-/// implementations in the EIC module make sense.
-pub trait EicPin<T> {
-    fn into_ei(self, port: &mut Port) -> T;
+/// The FloatingEicPin trait makes it more ergonomic to convert a gpio pin into
+/// an EIC pin with a floating input. You should not implement this trait for
+/// yourself; only the implementations in the EIC module make sense.
+pub trait FloatingEicPin<T> {
+    fn into_floating_ei(self, port: &mut Port) -> T;
+}
+
+/// The PullUpEicPin trait makes it more ergonomic to convert a gpio pin into an
+/// EIC pin with a pulled-up input. You should not implement this trait for
+/// yourself; only the implementations in the EIC module make sense.
+pub trait PullUpEicPin<T> {
+    fn into_pull_up_ei(self, port: &mut Port) -> T;
+}
+
+/// The PullDownEicPin trait makes it more ergonomic to convert a gpio pin into
+/// an EIC pin with a pulled-down input. You should not implement this trait for
+/// yourself; only the implementations in the EIC module make sense.
+pub trait PullDownEicPin<T> {
+    fn into_pull_down_ei(self, port: &mut Port) -> T;
 }
 
 pub type Sense = target_device::eic::config::SENSE0_A;
@@ -39,7 +55,7 @@ crate::paste::item! {
     where
         GPIO: AnyPin,
     {
-        _pin: v2::Pin<GPIO::Id, AlternateA>,
+        _pin: Pin<GPIO::Id, GPIO::Mode>,
     }
 
     // impl !Send for [<$PadType $num>]<GPIO> {};
@@ -50,8 +66,9 @@ crate::paste::item! {
         /// You may find it more convenient to use the `into_pad` trait
         /// and avoid referencing the pad type.
         pub fn new(pin: GPIO) -> Self {
-            let _pin = pin.into().into_alternate();
-            [<$PadType $num>]{ _pin }
+            [<$PadType $num>]{
+                _pin: pin.into()
+            }
         }
 
         pub fn enable_event(&mut self, eic: &mut super::ConfigurableEIC) {
@@ -135,13 +152,28 @@ crate::paste::item! {
 
     $(
         $(#[$attr])*
-        impl<MODE: gpio::PinMode> EicPin<[<$PadType $num>]<gpio::$PinType<gpio::PfA>>> for gpio::$PinType<MODE> {
-            fn into_ei(self, port: &mut Port) -> [<$PadType $num>]<gpio::$PinType<gpio::PfA>> {
-                [<$PadType $num>]::new(self.into_function(port))
+        impl<MODE: PinMode> FloatingEicPin<[<$PadType $num>]<gpio::$PinType<FloatingInterrupt>>> for gpio::$PinType<MODE> {
+            fn into_floating_ei(self, port: &mut Port) -> [<$PadType $num>]<gpio::$PinType<FloatingInterrupt>> {
+                [<$PadType $num>]::new(self.into_floating_interrupt(port))
             }
         }
+
         $(#[$attr])*
-        impl<MODE: gpio::PinMode> ExternalInterrupt for gpio::$PinType<MODE> {
+        impl<MODE: PinMode> PullUpEicPin<[<$PadType $num>]<gpio::$PinType<PullUpInterrupt>>> for gpio::$PinType<MODE> {
+            fn into_pull_up_ei(self, port: &mut Port) -> [<$PadType $num>]<gpio::$PinType<PullUpInterrupt>> {
+                [<$PadType $num>]::new(self.into_pull_up_interrupt(port))
+            }
+        }
+
+        $(#[$attr])*
+        impl<MODE: PinMode> PullDownEicPin<[<$PadType $num>]<gpio::$PinType<PullDownInterrupt>>> for gpio::$PinType<MODE> {
+            fn into_pull_down_ei(self, port: &mut Port) -> [<$PadType $num>]<gpio::$PinType<PullDownInterrupt>> {
+                [<$PadType $num>]::new(self.into_pull_down_interrupt(port))
+            }
+        }
+
+        $(#[$attr])*
+        impl<MODE: PinMode> ExternalInterrupt for gpio::$PinType<MODE> {
             fn id(&self) -> ExternalInterruptID {
                 $num
             }
@@ -152,7 +184,7 @@ crate::paste::item! {
     };
 }
 
-impl<I, M> ExternalInterrupt for v2::Pin<I, M>
+impl<I, M> ExternalInterrupt for Pin<I, M>
 where
     I: PinId,
     M: PinMode,
