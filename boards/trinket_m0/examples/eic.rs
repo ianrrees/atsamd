@@ -7,7 +7,6 @@
 use panic_halt as _;
 use trinket_m0 as hal;
 
-use cortex_m::asm::delay as cycle_delay;
 use hal::clock::GenericClockController;
 use hal::eic::{pin::Sense, EIC};
 use hal::entry;
@@ -34,7 +33,7 @@ fn main() -> ! {
     let clock = clocks.eic(&gclk0).unwrap();
     let mut eic = EIC::init(&mut peripherals.PM, clock, peripherals.EIC);
 
-    let mut d3 = pins.d3.into_pull_up_ei(&mut pins.port);
+    let mut d3 = pins.d3.into_ei(&mut pins.port).into_pull_up();
     d3.sense(&mut eic, Sense::FALL);
     d3.enable_interrupt(&mut eic);
 

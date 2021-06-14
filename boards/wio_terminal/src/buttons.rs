@@ -52,14 +52,14 @@ impl ButtonPins {
         // ExtInt line as up on the joystick. As such, we don't
         // support B1.
 
-        // let mut b1 = self.button1.into_floating_ei(port);
-        let mut b2 = self.button2.into_floating_ei(port);
-        let mut b3 = self.button3.into_floating_ei(port);
-        let mut x = self.switch_x.into_floating_ei(port);
-        let mut y = self.switch_y.into_floating_ei(port);
-        let mut z = self.switch_z.into_floating_ei(port);
-        let mut u = self.switch_u.into_floating_ei(port);
-        let mut b = self.switch_b.into_floating_ei(port);
+        // let mut b1 = self.button1.into_ei(port);
+        let mut b2 = self.button2.into_ei(port);
+        let mut b3 = self.button3.into_ei(port);
+        let mut x = self.switch_x.into_ei(port);
+        let mut y = self.switch_y.into_ei(port);
+        let mut z = self.switch_z.into_ei(port);
+        let mut u = self.switch_u.into_ei(port);
+        let mut b = self.switch_b.into_ei(port);
 
         // b1.sense(&mut eic, Sense::BOTH);
         b2.sense(&mut eic, Sense::BOTH);
