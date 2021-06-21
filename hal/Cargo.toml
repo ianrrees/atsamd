@@ -154,6 +154,11 @@ default = ["unproven"]
 # rt feature would link all possible parts in and cause a linker error due to
 # the high degree of similar symbols present in the various parts.
 device = [] # Should be included if we are building for a specific target device.
+samd10 = ["samd11"] # SAMD10 is identical to SAMD11, but without USB
+samd10c = ["atsamd11c", "samd10"]
+samd10c-rt = ["samd10c", "atsamd11c/rt"]
+samd10d = ["atsamd11d", "samd10"]
+samd10d-rt = ["samd10d", "atsamd11d/rt"]
 samd11 = ["device"] # Convenience feature for shared configuration of samd11 chips.
 samd11c = ["atsamd11c", "samd11"]
 samd11c-rt = ["samd11c", "atsamd11c/rt"]

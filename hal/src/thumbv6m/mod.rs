@@ -19,8 +19,9 @@ pub mod pwm;
 #[cfg(feature = "unproven")]
 pub mod watchdog;
 
-#[cfg(feature = "usb")]
-#[cfg(feature = "samd21")]
+// Note that SAMD10 is identical to SAMD11 except it lacks USB, we treat SAMD10
+// as an alias to SAMD11.  When SAMD11 USB is implemented, exclude SAMD10 here.
+#[cfg(all(feature = "usb", feature = "samd21"))]
 pub mod usb;
 
 pub(crate) mod sercom;
