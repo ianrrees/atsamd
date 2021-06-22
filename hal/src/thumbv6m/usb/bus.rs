@@ -783,6 +783,15 @@ impl Inner {
         usb.ctrlb.modify(|_, w| w.detach().clear_bit());
     }
 
+    /// Enables/disables the Start Of Frame (SOF) interrupt
+    fn sof_interrupt(&self, enable: bool) {
+        if enable {
+            self.usb().intenset.write(|w| w.sof().set_bit());
+        } else {
+            self.usb().intenset.write(|w| w.sof().clear_bit());
+        }
+    }
+
     /// Configures all endpoints based on prior calls to alloc_ep().
     fn flush_eps(&self, mode: FlushConfigMode) {
         for idx in 0..8 {
@@ -1008,6 +1017,14 @@ impl Inner {
             .write(|w| unsafe { w.dadd().bits(addr).adden().set_bit() });
     }
 
+    fn check_sof_interrupt(&self) -> bool {
+        if self.usb().intflag.read().sof().bit() {
+            self.usb().intflag.write(|w| w.sof().set_bit());
+            return true;
+        }
+        false
+    }
+
     fn poll(&self) -> PollResult {
         let intflags = self.usb().intflag.read();
         if intflags.eorst().bit() {
@@ -1217,6 +1234,23 @@ impl Inner {
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
         self.set_stall(ep, stalled);
+    }
+}
+
+impl UsbBus {
+    /// Enables the Start Of Frame (SOF) interrupt
+    pub fn enable_sof_interrupt(&self) {
+        self.inner.sof_interrupt(true)
+    }
+
+    /// Disables the Start Of Frame (SOF) interrupt
+    pub fn disable_sof_interrupt(&self) {
+        self.inner.sof_interrupt(false)
+    }
+
+    /// Checks, and clears if set, the Start Of Frame (SOF) interrupt flag
+    pub fn check_sof_interrupt(&self) -> bool {
+        self.inner.check_sof_interrupt()
     }
 }
 
