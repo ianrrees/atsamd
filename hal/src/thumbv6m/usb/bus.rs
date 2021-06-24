@@ -353,9 +353,7 @@ impl<'a> Bank<'a, InBank> {
     /// Prepares to transfer 'size_bytes' bytes from supplied buffer to the host.
     /// 'buf' must remain valid until is_transfer_complete() returns true.
     pub fn write_dma<T: ReadBuffer>(&mut self, buf: T, size_bytes: usize) -> UsbResult<()> {
-        let (buf_ptr, buf_len_words) = unsafe {
-            buf.read_buffer()
-        };
+        let (buf_ptr, buf_len_words) = unsafe { buf.read_buffer() };
 
         // The data buffer pointed to by the descriptor bank must be 32-bit aligned
         if buf_ptr as usize & 0x1F != 0 {
@@ -484,7 +482,10 @@ impl<'a> Bank<'a, OutBank> {
         Ok(size)
     }
 
-    pub fn swap_read_dma<WB: WriteBuffer>(&mut self, mut buf: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+    pub fn swap_read_dma<WB: WriteBuffer>(
+        &mut self,
+        mut buf: WB,
+    ) -> UsbResult<(UsbReadBuffer, usize)> {
         let (new_ptr, buf_size_words) = unsafe { buf.write_buffer() };
         let buf_size_bytes = buf_size_words * mem::size_of::<WB::Word>();
 
@@ -497,7 +498,7 @@ impl<'a> Bank<'a, OutBank> {
             // Not strictly an overflow, but captures the spirit of the problem
             return Err(UsbError::BufferOverflow);
         }
-        
+
         let old_buf = UsbReadBuffer {
             pointer: self.desc_bank().get_address(),
             size: self.loaned_buffer_size,
@@ -665,9 +666,7 @@ impl UsbBus {
             endpoints: RefCell::new(AllEndpoints::new()),
         };
 
-        Self {
-            inner,
-        }
+        Self { inner }
     }
 }
 
@@ -1133,7 +1132,12 @@ impl Inner {
         size
     }
 
-    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+    fn start_write_dma<T: ReadBuffer>(
+        &self,
+        ep_addr: EndpointAddress,
+        buf: T,
+        size_bytes: usize,
+    ) -> UsbResult<()> {
         let mut bank = self.bank1(ep_addr)?;
 
         if bank.is_ready() {
@@ -1194,7 +1198,11 @@ impl Inner {
         }
     }
 
-    fn swap_read_dma<WB: WriteBuffer>(&self, ep: EndpointAddress, buffer: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+    fn swap_read_dma<WB: WriteBuffer>(
+        &self,
+        ep: EndpointAddress,
+        buffer: WB,
+    ) -> UsbResult<(UsbReadBuffer, usize)> {
         let mut bank = self.bank0(ep)?;
         let rxstp = bank.received_setup_interrupt();
 
@@ -1281,13 +1289,8 @@ impl usb_device::bus::UsbBus for UsbBus {
         max_packet_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
-        self.inner.alloc_ep(
-            dir,
-            addr,
-            ep_type,
-            max_packet_size,
-            interval,
-        )
+        self.inner
+            .alloc_ep(dir, addr, ep_type, max_packet_size, interval)
     }
 
     fn alloc_dma_out_endpoint<Buf: WriteBuffer>(
@@ -1298,13 +1301,8 @@ impl usb_device::bus::UsbBus for UsbBus {
         interval: u8,
         buffer: Buf,
     ) -> UsbResult<EndpointAddress> {
-        self.inner.alloc_dma_out_endpoint(
-            ep_addr,
-            ep_type,
-            max_packet_size,
-            interval,
-            buffer,
-        )
+        self.inner
+            .alloc_dma_out_endpoint(ep_addr, ep_type, max_packet_size, interval, buffer)
     }
 
     fn alloc_dma_in_endpoint(
@@ -1314,12 +1312,8 @@ impl usb_device::bus::UsbBus for UsbBus {
         max_packet_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
-        self.inner.alloc_dma_in_endpoint(
-            ep_addr,
-            ep_type,
-            max_packet_size,
-            interval,
-        )
+        self.inner
+            .alloc_dma_in_endpoint(ep_addr, ep_type, max_packet_size, interval)
     }
 
     fn set_device_address(&self, addr: u8) {
@@ -1334,7 +1328,12 @@ impl usb_device::bus::UsbBus for UsbBus {
         self.inner.write(ep, buf)
     }
 
-    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+    fn start_write_dma<T: ReadBuffer>(
+        &self,
+        ep_addr: EndpointAddress,
+        buf: T,
+        size_bytes: usize,
+    ) -> UsbResult<()> {
         self.inner.start_write_dma(ep_addr, buf, size_bytes)
     }
 
@@ -1346,7 +1345,11 @@ impl usb_device::bus::UsbBus for UsbBus {
         self.inner.read(ep, buf)
     }
 
-    fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> UsbResult<(UsbReadBuffer, usize)> {
+    fn swap_read_dma<T: WriteBuffer>(
+        &self,
+        ep_addr: EndpointAddress,
+        buffer: T,
+    ) -> UsbResult<(UsbReadBuffer, usize)> {
         self.inner.swap_read_dma(ep_addr, buffer)
     }
 
