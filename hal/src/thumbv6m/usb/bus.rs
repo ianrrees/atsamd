@@ -1167,19 +1167,14 @@ impl Inner {
                 bank.clear_received_setup_interrupt();
             }
 
-            // self.print_epstatus(idx, "read");
-
             bank.clear_transfer_complete();
 
             if buf.len() != 0 {
                 bank.set_ready(false);
             }
 
-            drop(bank);
-
             match size {
                 Ok(size) => {
-                    //dbgprint!("UsbBus::read {} bytes ok", size);
                     dbgprint!(
                         "UsbBus::read {} bytes from ep {:?} -> {:?}\n",
                         size,
