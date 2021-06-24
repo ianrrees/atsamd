@@ -432,7 +432,7 @@ impl<'a> Bank<'a, OutBank> {
     /// Enables endpoint-specific interrupts.
     fn setup_ep_interrupts(&mut self) {
         self.epintenset(self.index())
-            .write(|w| w.rxstp().set_bit().trcpt0().set_bit());
+            .write(|w| w.rxstp().set_bit().trfail0().set_bit().trcpt0().set_bit());
     }
 
     /// Copies data from the bank0 buffer to the provided array. The caller
@@ -866,7 +866,11 @@ impl Inner {
                 // instead it is cleared in the read handler.
             }
 
-            if bank0.is_transfer_complete() {
+            // A class may have used an empty read, via .read(&mut[]), on an OUT
+            // endpoint to signal that the class is not ready to receive more
+            // data.  That action clears the transfer complete and failed flags,
+            // but not bk0rdy.  So, check .is_ready() here.
+            if bank0.is_ready() {
                 dbgprint!("ep {} READABLE\n", ep);
                 ep_out |= mask;
             }
@@ -924,7 +928,10 @@ impl Inner {
             // self.print_epstatus(idx, "read");
 
             bank.clear_transfer_complete();
-            bank.set_ready(false);
+
+            if buf.len() != 0 {
+                bank.set_ready(false);
+            }
 
             drop(bank);
 
