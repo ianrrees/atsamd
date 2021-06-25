@@ -82,6 +82,8 @@ macro_rules! dbgprint {
 pub mod delay;
 #[cfg(feature = "device")]
 pub mod gpio;
+// #[cfg(all(feature = "device", not(feature = "samd11")))]
+pub mod i2s;
 #[cfg(feature = "device")]
 pub mod prelude;
 #[cfg(feature = "device")]
