@@ -74,3 +74,6 @@ required-features = ["rtic", "unproven"]
 
 [[example]]
 name = "blinky_basic"
+
+[[example]]
+name = "i2s"
