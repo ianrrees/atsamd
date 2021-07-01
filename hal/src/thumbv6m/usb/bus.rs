@@ -425,6 +425,7 @@ impl<'a> Bank<'a, OutBank> {
 
     /// Checks if data has been received. Returns true for failed transfers
     /// as well as successful transfers.
+    #[allow(unused)]
     #[inline]
     fn is_transfer_complete(&self) -> bool {
         self.epintflag(self.index()).read().trcpt0().bit()
