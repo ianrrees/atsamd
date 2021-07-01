@@ -1243,17 +1243,17 @@ impl Inner {
 impl UsbBus {
     /// Enables the Start Of Frame (SOF) interrupt
     pub fn enable_sof_interrupt(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().sof_interrupt(true))
+        self.inner.sof_interrupt(true)
     }
 
     /// Disables the Start Of Frame (SOF) interrupt
     pub fn disable_sof_interrupt(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().sof_interrupt(false))
+        self.inner.sof_interrupt(false)
     }
 
     /// Checks, and clears if set, the Start Of Frame (SOF) interrupt flag
     pub fn check_sof_interrupt(&self) -> bool {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().check_sof_interrupt())
+        self.inner.check_sof_interrupt()
     }
 }
 
