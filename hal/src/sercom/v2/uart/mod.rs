@@ -437,6 +437,8 @@ impl CharSize for NineBit {
 //=============================================================================
 
 /// Number of stop bits in a UART frame
+// #[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 pub enum StopBits {
     /// 1 stop bit
     OneBit = 0,
@@ -445,6 +447,8 @@ pub enum StopBits {
 }
 
 /// Parity setting of a UART frame
+// #[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 pub enum Parity {
     /// Even parity
     Even = 0,
