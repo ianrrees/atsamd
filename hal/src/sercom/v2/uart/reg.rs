@@ -105,7 +105,7 @@ impl<S: Sercom> Registers<S> {
 
         self.usart()
             .ctrla
-            .modify(|_, w| unsafe { w.form().bits(!enabled as u8) });
+            .modify(|_, w| unsafe { w.form().bits(enabled as u8) });
     }
 
     /// Change the stop bit setting
