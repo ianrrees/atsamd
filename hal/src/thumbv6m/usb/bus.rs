@@ -1093,10 +1093,14 @@ impl Inner {
             }
         }
 
-        PollResult::Data {
-            ep_out,
-            ep_in_complete,
-            ep_setup,
+        if ep_out == 0 && ep_in_complete == 0 && ep_setup == 0 {
+            PollResult::None
+        } else {
+            PollResult::Data {
+                ep_out,
+                ep_in_complete,
+                ep_setup,
+            }
         }
     }
 
