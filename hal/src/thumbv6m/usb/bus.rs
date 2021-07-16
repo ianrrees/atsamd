@@ -461,7 +461,7 @@ impl<'a> Bank<'a, OutBank> {
     /// Enables endpoint-specific interrupts.
     fn setup_ep_interrupts(&mut self) {
         self.epintenset(self.index())
-            .write(|w| w.rxstp().set_bit().trfail0().set_bit().trcpt0().set_bit());
+            .write(|w| w.rxstp().set_bit().trcpt0().set_bit());
     }
 
     /// Copies data from the bank0 buffer to the provided array. The caller
@@ -1038,21 +1038,12 @@ impl Inner {
         // unconnected & unsuspended, we do not handle them to avoid spurious
         // transitions.
 
-        let intbits = self.usb().epintsmry.read().bits();
-        if intbits == 0 {
-            return PollResult::None;
-        }
-
         let mut ep_out = 0;
         let mut ep_in_complete = 0;
         let mut ep_setup = 0;
 
         for ep in 0..8u16 {
             let mask = 1 << ep;
-            if (intbits & mask) == 0 {
-                continue;
-            }
-
             let idx = ep as usize;
 
             if let Ok(bank1) = self.bank1(EndpointAddress::from_parts(idx, UsbDirection::In)) {
@@ -1082,6 +1073,14 @@ impl Inner {
                     // instead it is cleared in the read handler.
                 }
 
+                // Clear the transfer complete and transfer failed interrupt flags
+                // so that execution leaves the USB interrupt until the host makes
+                // another transaction.  The transfer failed flag may have been set
+                // if an OUT transaction wasn't read() from the endpoint by the
+                // Class; the hardware will have NAKed (unless the endpoint is
+                // isochronous) and the host may retry.
+                bank0.clear_transfer_complete();
+
                 // Use the bk0rdy flag via is_ready() to indicate that data has been
                 // received successfully, rather than the interrupting trcpt0 via
                 // is_transfer_ready(), because data may have been received on an
@@ -1091,14 +1090,6 @@ impl Inner {
                     dbgprint!("ep {} READABLE\n", ep);
                     ep_out |= mask;
                 }
-
-                // Clear the transfer complete and transfer failed interrupt flags
-                // so that execution leaves the USB interrupt until the host makes
-                // another transaction.  The transfer failed flag may have been set
-                // if an OUT transaction wasn't read() from the endpoint by the
-                // Class; the hardware will have NAKed (unless the endpoint is
-                // isochronous) and the host may retry.
-                bank0.clear_transfer_complete();
             }
         }
 
