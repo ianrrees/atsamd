@@ -142,6 +142,79 @@ impl GenericClockController {
         Self::new_48mhz_from_32khz(gclk, pm, sysctrl, nvmctrl, false)
     }
 
+    /// 8.192MHz XOSC => 48MHz GCLK0 via DPLL96M, and 2.048MHz GCLK1
+    pub fn xosc_8192khz_xtal(
+        gclk: GCLK,
+        pm: &mut PM,
+        sysctrl: &mut SYSCTRL,
+        nvmctrl: &mut NVMCTRL,
+    ) -> Self {
+        let mut state = State { gclk };
+
+        set_flash_to_half_auto_wait_state(nvmctrl);
+        set_flash_manual_write(nvmctrl);
+        enable_gclk_apb(pm);
+
+        enable_external_crystal(sysctrl);
+
+        // Note that we aren't using the internal startup timer of the FDFLL96M,
+        // so haven't ensured there's a 32kHz clock from GCLK per 17.6.8.1
+
+        // Clock calculation: Have an 8.192MHz xtal and want a 48MHz CPU clock.
+        // From SAMD21 datasheet DS40001882F, section 17.6.8.3:
+        //   Fcpu = Fref * (LDR + LDRFRAC/16 + 1)
+        // Additionally, there's a division available between the xtal and Fref:
+        //   Fref = Fxtal / (2*(DIV + 1))
+        // One nice set of values works out as:
+        // DIV = 127  =>  Fref = 32kHz
+        // LDR = 1499, LDRFRAC = 0  => Fcpu = 48MHz
+        sysctrl.dpllratio.write(|w| unsafe {
+            w.ldr().bits(1499)
+        });
+
+        sysctrl.dpllctrlb.write(|w| unsafe {
+            w.refclk().ref1() // TODO look at SVD/PAC - this should really be called XOSC
+            .div().bits(127)
+        });
+
+        sysctrl.dpllctrla.write(|w|
+            w.ondemand().clear_bit()
+            .runstdby().set_bit()
+            .enable().set_bit()
+        );
+
+        while sysctrl.dpllstatus.read().lock().bit_is_clear() {}
+
+        state.reset_gclk();
+        state.set_gclk_divider_and_source(GCLK0, 1, DPLL96M, false);
+        state.set_gclk_divider_and_source(GCLK1, 4, XOSC, false);
+
+        // Reset various dividers back to 1
+        sysctrl.osc8m.modify(|_, w| {
+            w.presc()._0();
+            w.ondemand().clear_bit()
+        });
+        pm.cpusel.write(|w| w.cpudiv().div1());
+        pm.apbasel.write(|w| w.apbadiv().div1());
+        pm.apbbsel.write(|w| w.apbbdiv().div1());
+        pm.apbcsel.write(|w| w.apbcdiv().div1());
+
+        Self {
+            state,
+            gclks: [
+                48_000_000.Hz(),
+                (8_192_000 / 4).Hz(),
+                0.Hz(),
+                0.Hz(),
+                0.Hz(),
+                0.Hz(),
+                0.Hz(),
+                0.Hz(),
+            ],
+            used_clocks: 0,
+        }
+    }
+
     /// Reset the clock controller, configure the system to run
     /// at 48Mhz and reset various clock dividers.
     pub fn with_external_32kosc(
@@ -492,6 +565,21 @@ pub fn enable_internal_32kosc(sysctrl: &mut SYSCTRL) {
     });
     while sysctrl.pclksr.read().osc32krdy().bit_is_clear() {
         // Wait for the oscillator to stabilize
+    }
+}
+
+pub fn enable_external_crystal(sysctrl: &mut SYSCTRL) {
+    sysctrl.xosc.write(|w| unsafe {
+        w
+        .enable().set_bit()
+        .xtalen().set_bit()
+        .ampgc().set_bit()
+        .runstdby().set_bit()
+        .ondemand().clear_bit()
+        .startup().bits(0x5) // Approximately 997us startup time, arbitrary
+    });
+    while sysctrl.pclksr.read().xoscrdy().bit_is_clear() {
+        // Wait for the crystal to stabilize
     }
 }
 
