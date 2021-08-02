@@ -7,7 +7,7 @@ use crate::target_device::gclk::clkctrl::GEN_A::*;
 use crate::target_device::gclk::clkctrl::ID_A::*;
 use crate::target_device::gclk::genctrl::SRC_A::*;
 use crate::target_device::{self, GCLK, NVMCTRL, PM, SYSCTRL};
-use crate::time::{Hertz, U32Ext};
+use crate::time::Hertz;
 
 pub type ClockId = target_device::gclk::clkctrl::ID_A;
 pub type ClockGenId = target_device::gclk::clkctrl::GEN_A;
