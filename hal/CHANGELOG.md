@@ -1,5 +1,6 @@
 # Unreleased Changes
 
+- Update to usb-device 0.3.1
 - Add compile error for combined `library` and `dma` features
 - Add `dma` feature to docs metadata
 - Update the PACs to svd2rust 0.30.2.

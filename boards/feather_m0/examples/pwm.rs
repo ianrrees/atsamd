@@ -17,6 +17,7 @@ use hal::clock::GenericClockController;
 use hal::delay::Delay;
 use hal::prelude::*;
 use hal::pwm::Pwm3;
+use hal::time::Hertz;
 use pac::{CorePeripherals, Peripherals};
 
 #[entry]
@@ -38,7 +39,7 @@ fn main() -> ! {
     let gclk0 = clocks.gclk0();
     let mut pwm3 = Pwm3::new(
         &clocks.tcc2_tc3(&gclk0).unwrap(),
-        1.khz(),
+        Hertz::from_raw(1000),
         peripherals.TC3,
         &mut peripherals.PM,
     );
