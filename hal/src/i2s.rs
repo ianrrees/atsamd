@@ -1,7 +1,7 @@
 use crate::clock;
 #[cfg(feature = "dma")]
 use crate::dmac::Buffer;
-use crate::gpio::v2::*;
+use crate::gpio::*;
 use crate::pac;
 use crate::time::Hertz;
 
@@ -14,8 +14,8 @@ pub use pac::dmac::chctrlb::TRIGSRC_A as DmaTriggerSource;
 #[cfg(all(feature = "min-samd51g", feature = "dma"))]
 pub use pac::dmac::chctrla::TRIGSRC_A as DmaTriggerSource;
 
-pub use pac::i2s::clkctrl::SLOTSIZE_A as BitsPerSlot;
-use pac::i2s::serctrl::CLKSEL_A as ClockUnitID;
+pub use pac::i2s::clkctrl::SLOTSIZESELECT_A as BitsPerSlot;
+use pac::i2s::serctrl::CLKSELSELECT_A as ClockUnitID;
 
 // TODO This probably belongs in an I2S trait crate?
 // TODO nb::WouldBlock, assuming there aren't other I2SError enums needed
@@ -66,21 +66,21 @@ impl MasterClock<ClockUnit1> for clock::I2S1Clock {
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl MasterClock<ClockUnit0> for ExternalClock<Pin<PA09, AlternateG>> {
     fn freq(&self) -> Hertz {
         self.frequency
     }
 }
 
-#[cfg(feature = "min-samd21j")]
+#[cfg(all(feature = "samd21", feature = "pins-64"))]
 impl MasterClock<ClockUnit0> for ExternalClock<Pin<PB17, AlternateG>> {
     fn freq(&self) -> Hertz {
         self.frequency
     }
 }
 
-#[cfg(feature = "min-samd21g")]
+#[cfg(all(feature = "samd21", feature = "pins-48a"))]
 impl MasterClock<ClockUnit1> for ExternalClock<Pin<PB10, AlternateG>> {
     fn freq(&self) -> Hertz {
         self.frequency
@@ -89,20 +89,20 @@ impl MasterClock<ClockUnit1> for ExternalClock<Pin<PB10, AlternateG>> {
 
 pub trait SerialClock<ClockUnit> {}
 
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerialClock<ClockUnit0> for Pin<PA10, AlternateG> {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(all(feature = "samd21", feature = "pins-48a"))]
 impl SerialClock<ClockUnit0> for Pin<PA20, AlternateG> {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(all(feature = "samd21", feature = "pins-48a"))]
 impl SerialClock<ClockUnit1> for Pin<PB11, AlternateG> {}
 
 pub trait FrameSync<ClockUnit> {}
 
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl FrameSync<ClockUnit0> for Pin<PA11, AlternateG> {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(all(feature = "samd21", feature = "pins-48a"))]
 impl FrameSync<ClockUnit0> for Pin<PA21, AlternateG> {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(all(feature = "samd21", feature = "pins-64"))]
 impl FrameSync<ClockUnit1> for Pin<PB12, AlternateG> {}
 
 /// The I2S peripheral has two serializers; refer to them using this enum
@@ -151,23 +151,23 @@ impl SerializerOrientation for Tx1Rx0 {
 // TODO make these optional, in particular the Tx one to support PDM mics
 pub trait SerializerTx<SerializerOrientation> {}
 
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerTx<Tx0Rx1> for Pin<PA07, AlternateG> {}
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerTx<Tx1Rx0> for Pin<PA08, AlternateG> {}
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerTx<Tx0Rx1> for Pin<PA19, AlternateG> {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(all(feature = "samd21", feature = "pins-64"))]
 impl SerializerTx<Tx1Rx0> for Pin<PB16, AlternateG> {}
 
 pub trait SerializerRx<SerializerOrientation> {}
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerRx<Tx1Rx0> for Pin<PA07, AlternateG> {}
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerRx<Tx0Rx1> for Pin<PA08, AlternateG> {}
-#[cfg(feature = "samd21")]
+#[cfg(all(feature = "samd21", feature = "pins-32"))]
 impl SerializerRx<Tx1Rx0> for Pin<PA19, AlternateG> {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(all(feature = "samd21", feature = "pins-64"))]
 impl SerializerRx<Tx0Rx1> for Pin<PB16, AlternateG> {}
 
 pub struct InterruptMask<T> {
@@ -268,7 +268,7 @@ impl<MasterClockSource, SerialClockPin, FrameSyncPin, RxPin, TxPin>
 
         // defmt::info!("Master clock running at {:?}", master_clock_source.freq().0);
 
-        let master_clock_divisor = (master_clock_source.freq().0 / serial_freq.into().0 - 1) as u8;
+        let master_clock_divisor = (master_clock_source.freq() / serial_freq.into() - 1) as u8;
         // defmt::info!("divisor is {:?}", master_clock_divisor);
 
         // unsafe is due to the bits() calls
