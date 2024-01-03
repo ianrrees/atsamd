@@ -16,9 +16,10 @@ use crate::usb::devicedesc::DeviceDescBank;
 use core::cell::{Ref, RefCell, RefMut};
 use core::marker::PhantomData;
 use core::mem;
-use cortex_m::interrupt::{free as disable_interrupts, Mutex};
+use core::ptr;
 use cortex_m::singleton;
-use usb_device::bus::PollResult;
+use embedded_dma::{ReadBuffer, WriteBuffer};
+use usb_device::bus::{PollResult, UsbReadBuffer};
 use usb_device::endpoint::{EndpointAddress, EndpointType};
 use usb_device::{Result as UsbResult, UsbDirection, UsbError};
 
@@ -45,7 +46,7 @@ impl From<EndpointType> for EndpointTypeBits {
     fn from(ep_type: EndpointType) -> EndpointTypeBits {
         match ep_type {
             EndpointType::Control => EndpointTypeBits::Control,
-            EndpointType::Isochronous => EndpointTypeBits::Isochronous,
+            EndpointType::Isochronous{..} => EndpointTypeBits::Isochronous,
             EndpointType::Bulk => EndpointTypeBits::Bulk,
             EndpointType::Interrupt => EndpointTypeBits::Interrupt,
         }
@@ -58,7 +59,7 @@ struct EPConfig {
     ep_type: EndpointTypeBits,
     allocated_size: u16,
     max_packet_size: u16,
-    addr: usize,
+    addr: usize, // TODO shouldn't this be a pointer?
 }
 
 impl EPConfig {
@@ -204,8 +205,10 @@ struct Inner {
     buffers: RefCell<BufferAllocator>,
 }
 
+unsafe impl Sync for Inner {}
+
 pub struct UsbBus {
-    inner: Mutex<RefCell<Inner>>,
+    inner: Inner,
 }
 
 /// Generate a method that allows returning the endpoint register
@@ -240,6 +243,7 @@ struct Bank<'a, T> {
     address: EndpointAddress,
     usb: &'a DEVICE,
     desc: RefMut<'a, super::Descriptors>,
+    loaned_buffer_size: usize, // TODO roll this in to the OutBank?  EPConfig::allocated_size?
     _phantom: PhantomData<T>,
     endpoints: Ref<'a, AllEndpoints>,
 }
@@ -346,6 +350,31 @@ impl<'a> Bank<'a, InBank> {
         Ok(size)
     }
 
+    /// Prepares to transfer 'size_bytes' bytes from supplied buffer to the host.
+    /// 'buf' must remain valid until is_transfer_complete() returns true.
+    pub fn write_dma<T: ReadBuffer>(&mut self, buf: T, size_bytes: usize) -> UsbResult<()> {
+        let (buf_ptr, buf_len_words) = unsafe {
+            buf.read_buffer()
+        };
+
+        // The data buffer pointed to by the descriptor bank must be 32-bit aligned
+        if buf_ptr as usize & 0x1F != 0 {
+            return Err(UsbError::Unsupported);
+        }
+
+        if mem::size_of::<T::Word>() * buf_len_words < size_bytes {
+            return Err(UsbError::BufferOverflow);
+        }
+
+        let desc = self.desc_bank();
+
+        desc.set_address(buf_ptr as *mut u8);
+        desc.set_multi_packet_size(0);
+        desc.set_byte_count(size_bytes as u16);
+
+        Ok(())
+    }
+
     fn is_stalled(&self) -> bool {
         self.epintflag(self.index()).read().stall1().bit()
     }
@@ -448,6 +477,41 @@ impl<'a> Bank<'a, OutBank> {
         Ok(size)
     }
 
+    pub fn swap_read_dma<WB: WriteBuffer>(&mut self, mut buf: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+        let (new_ptr, buf_size_words) = unsafe { buf.write_buffer() };
+        let buf_size_bytes = buf_size_words * mem::size_of::<WB::Word>();
+
+        // Isochronous transfers might specify a maximum packet size less than
+        // the endpoint hardware is configured for.  It's important to ensure
+        // the supplied buffer is big enough to hold the potentially-larger size
+        // from the endpoint hardware, so that a misbehaving USB host (or
+        // transmission error) doesn't cause a buffer overrun.
+        if self.desc_bank().get_endpoint_size() as usize > buf_size_bytes {
+            // Not strictly an overflow, but captures the spirit of the problem
+            return Err(UsbError::BufferOverflow);
+        }
+        
+        let old_buf = UsbReadBuffer {
+            pointer: self.desc_bank().get_address(),
+            size: self.loaned_buffer_size,
+        };
+
+        self.loaned_buffer_size = buf_size_bytes;
+
+        let desc = self.desc_bank();
+
+        let read_size = desc.get_byte_count() as usize;
+        desc.set_address(new_ptr as *mut u8);
+        desc.set_byte_count(0);
+        desc.set_multi_packet_size(0);
+
+        Ok((old_buf, read_size))
+    }
+
+    pub fn can_read(&mut self) -> Option<usize> {
+        Some(self.desc_bank().get_byte_count() as usize)
+    }
+
     fn is_stalled(&self) -> bool {
         self.epintflag(self.index()).read().stall0().bit()
     }
@@ -547,6 +611,7 @@ impl Inner {
             address: ep,
             usb: self.usb(),
             desc: self.desc.borrow_mut(),
+            loaned_buffer_size: 0,
             endpoints,
             _phantom: PhantomData,
         })
@@ -565,6 +630,7 @@ impl Inner {
             address: ep,
             usb: self.usb(),
             desc: self.desc.borrow_mut(),
+            loaned_buffer_size: 0,
             endpoints,
             _phantom: PhantomData,
         })
@@ -592,7 +658,7 @@ impl UsbBus {
         };
 
         Self {
-            inner: Mutex::new(RefCell::new(inner)),
+            inner,
         }
     }
 }
@@ -757,7 +823,7 @@ impl Inner {
         // The USB hardware encodes the maximum packet size in 3 bits, so
         // reserve enough buffer that the hardware won't overwrite it even if
         // the other side issues an overly-long transfer.
-        let allocated_size = match max_packet_size {
+        let buffer_size = match max_packet_size {
             1..=8 => 8,
             9..=16 => 16,
             17..=32 => 32,
@@ -769,7 +835,7 @@ impl Inner {
             _ => return Err(UsbError::Unsupported),
         };
 
-        let buffer = self.buffers.borrow_mut().allocate_buffer(allocated_size)?;
+        let buffer = self.buffers.borrow_mut().allocate_buffer(buffer_size)?;
 
         let mut endpoints = self.endpoints.borrow_mut();
 
@@ -782,11 +848,93 @@ impl Inner {
             dir,
             idx,
             ep_type,
-            allocated_size,
+            buffer_size,
             max_packet_size,
             interval,
             buffer,
         )?;
+
+        Ok(addr)
+    }
+
+    fn alloc_dma_out_endpoint<Buf: WriteBuffer>(
+        &mut self,
+        addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+        mut buffer: Buf,
+    ) -> UsbResult<EndpointAddress> {
+        let (buf_ptr, buf_size_words) = unsafe { buffer.write_buffer() };
+        let buf_size_bytes = (buf_size_words * mem::size_of::<Buf::Word>()) as u16;
+
+        if buf_size_bytes < max_packet_size {
+            return Err(UsbError::BufferOverflow);
+        }
+
+        dbgprint!(
+            "UsbBus::alloc_dma_out_endpoint addr={:?} type={:?} max_packet_size={} interval={}\n",
+            addr,
+            ep_type,
+            max_packet_size,
+            interval
+        );
+
+        let mut endpoints = self.endpoints.borrow_mut();
+
+        let idx = match addr {
+            None => endpoints.find_free_endpoint(UsbDirection::Out)?,
+            Some(addr) => addr.index(),
+        };
+
+        let addr = endpoints.allocate_endpoint(
+            UsbDirection::Out,
+            idx,
+            ep_type,
+            buf_size_bytes,
+            max_packet_size,
+            interval,
+            buf_ptr as *mut u8,
+        )?;
+
+        dbgprint!("alloc_dma_out_endpoint -> {:?}\n", addr);
+
+        Ok(addr)
+    }
+
+    fn alloc_dma_in_endpoint(
+        &mut self,
+        addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+    ) -> UsbResult<EndpointAddress> {
+        dbgprint!(
+            "UsbBus::alloc_dma_in_endpoint addr={:?} type={:?} max_packet_size={} interval={}\n",
+            addr,
+            ep_type,
+            max_packet_size,
+            interval
+        );
+
+        let mut endpoints = self.endpoints.borrow_mut();
+
+        let idx = match addr {
+            None => endpoints.find_free_endpoint(UsbDirection::In)?,
+            Some(addr) => addr.index(),
+        };
+
+        let addr = endpoints.allocate_endpoint(
+            UsbDirection::In,
+            idx,
+            ep_type,
+            0,
+            max_packet_size,
+            interval,
+            ptr::null_mut(),
+        )?;
+
+        dbgprint!("alloc_dma_in_endpoint -> {:?}\n", addr);
 
         Ok(addr)
     }
@@ -898,6 +1046,29 @@ impl Inner {
         size
     }
 
+    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+        let mut bank = self.bank1(ep_addr)?;
+
+        if bank.is_ready() {
+            // Host hasn't read existing data
+            return Err(UsbError::WouldBlock);
+        }
+
+        bank.write_dma(buf, size_bytes)?;
+        bank.clear_transfer_complete();
+        bank.set_ready(true); // ready to be sent
+
+        Ok(())
+    }
+
+    fn can_write(&self, ep_addr: EndpointAddress) -> bool {
+        if let Ok(bank) = self.bank1(ep_addr) {
+            !bank.is_ready()
+        } else {
+            false
+        }
+    }
+
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         let mut bank = self.bank0(ep)?;
         let rxstp = bank.received_setup_interrupt();
@@ -918,6 +1089,38 @@ impl Inner {
         }
     }
 
+    fn swap_read_dma<WB: WriteBuffer>(&self, ep: EndpointAddress, buffer: WB) -> UsbResult<(UsbReadBuffer, usize)> {
+        let mut bank = self.bank0(ep)?;
+        let rxstp = bank.received_setup_interrupt();
+
+        if bank.is_ready() || rxstp {
+            let prev_read = bank.swap_read_dma(buffer)?;
+
+            if rxstp {
+                bank.clear_received_setup_interrupt();
+            }
+
+            bank.clear_transfer_complete();
+            bank.set_ready(false);
+
+            Ok(prev_read)
+        } else {
+            Err(UsbError::WouldBlock)
+        }
+    }
+
+    fn can_read(&self, ep: EndpointAddress) -> Option<usize> {
+        if let Ok(mut bank) = self.bank0(ep) {
+            let rxstp = bank.received_setup_interrupt();
+
+            if bank.is_ready() || rxstp {
+                return bank.can_read();
+            }
+        }
+
+        None
+    }
+
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
         if ep.is_out() {
             self.bank0(ep).unwrap().is_stalled()
@@ -934,35 +1137,35 @@ impl Inner {
 impl UsbBus {
     /// Enables the Start Of Frame (SOF) interrupt
     pub fn enable_sof_interrupt(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().sof_interrupt(true))
+        self.inner.sof_interrupt(true)
     }
 
     /// Disables the Start Of Frame (SOF) interrupt
     pub fn disable_sof_interrupt(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().sof_interrupt(false))
+        self.inner.sof_interrupt(false)
     }
 
     /// Checks, and clears if set, the Start Of Frame (SOF) interrupt flag
     pub fn check_sof_interrupt(&self) -> bool {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().check_sof_interrupt())
+        self.inner.check_sof_interrupt()
     }
 }
 
 impl usb_device::bus::UsbBus for UsbBus {
     fn enable(&mut self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow_mut().enable())
+        self.inner.enable()
     }
 
     fn reset(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().protocol_reset())
+        self.inner.protocol_reset()
     }
 
     fn suspend(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().suspend())
+        self.inner.suspend()
     }
 
     fn resume(&self) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().resume())
+        self.inner.resume()
     }
 
     fn alloc_ep(
@@ -973,38 +1176,84 @@ impl usb_device::bus::UsbBus for UsbBus {
         max_packet_size: u16,
         interval: u8,
     ) -> UsbResult<EndpointAddress> {
-        disable_interrupts(|cs| {
-            self.inner.borrow(cs).borrow_mut().alloc_ep(
-                dir,
-                addr,
-                ep_type,
-                max_packet_size,
-                interval,
-            )
-        })
+        self.inner.alloc_ep(
+            dir,
+            addr,
+            ep_type,
+            max_packet_size,
+            interval,
+        )
+    }
+
+    fn alloc_dma_out_endpoint<Buf: WriteBuffer>(
+        &mut self,
+        ep_addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+        buffer: Buf,
+    ) -> UsbResult<EndpointAddress> {
+        self.inner.alloc_dma_out_endpoint(
+            ep_addr,
+            ep_type,
+            max_packet_size,
+            interval,
+            buffer,
+        )
+    }
+
+    fn alloc_dma_in_endpoint(
+        &mut self,
+        ep_addr: Option<EndpointAddress>,
+        ep_type: EndpointType,
+        max_packet_size: u16,
+        interval: u8,
+    ) -> UsbResult<EndpointAddress> {
+        self.inner.alloc_dma_in_endpoint(
+            ep_addr,
+            ep_type,
+            max_packet_size,
+            interval,
+        )
     }
 
     fn set_device_address(&self, addr: u8) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().set_device_address(addr))
+        self.inner.set_device_address(addr)
     }
 
     fn poll(&self) -> PollResult {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().poll())
+        self.inner.poll()
     }
 
     fn write(&self, ep: EndpointAddress, buf: &[u8]) -> UsbResult<usize> {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().write(ep, buf))
+        self.inner.write(ep, buf)
+    }
+
+    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> UsbResult<()> {
+        self.inner.start_write_dma(ep_addr, buf, size_bytes)
+    }
+
+    fn can_write(&self, ep_addr: EndpointAddress) -> bool {
+        self.inner.can_write(ep_addr)
     }
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().read(ep, buf))
+        self.inner.read(ep, buf)
+    }
+
+    fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> UsbResult<(UsbReadBuffer, usize)> {
+        self.inner.swap_read_dma(ep_addr, buffer)
+    }
+
+    fn can_read(&self, ep: EndpointAddress) -> Option<usize> {
+        self.inner.can_read(ep)
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().set_stalled(ep, stalled))
+        self.inner.set_stalled(ep, stalled)
     }
 
     fn is_stalled(&self, ep: EndpointAddress) -> bool {
-        disable_interrupts(|cs| self.inner.borrow(cs).borrow().is_stalled(ep))
+        self.inner.is_stalled(ep)
     }
 }
