@@ -9,10 +9,10 @@ use core::convert::From;
 use core::marker::PhantomData;
 
 #[cfg(all(feature = "samd21", feature = "dma"))]
-pub use pac::dmac::chctrlb::TRIGSRC_A as DmaTriggerSource;
+pub use pac::dmac::chctrlb::TRIGSRCSELECT_A as DmaTriggerSource;
 
 #[cfg(all(feature = "min-samd51g", feature = "dma"))]
-pub use pac::dmac::chctrla::TRIGSRC_A as DmaTriggerSource;
+pub use pac::dmac::chctrla::TRIGSRCSELECT_A as DmaTriggerSource;
 
 pub use pac::i2s::clkctrl::SLOTSIZESELECT_A as BitsPerSlot;
 use pac::i2s::serctrl::CLKSELSELECT_A as ClockUnitID;
