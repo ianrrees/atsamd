@@ -394,9 +394,14 @@ impl Bank<'_, OutBank> {
             .write(|w| w.rxstp().set_bit().trcpt0().set_bit());
     }
 
-    /// Copies data from the bank0 buffer to the provided array. The caller
-    /// must call set_ready to indicate the buffer is free for the next
-    /// transfer.
+    /// Copies data from the bank0 buffer to the provided array
+    ///
+    /// The caller must call read_done() to indicate the buffer is free for the
+    /// next transfer.  This two-step read is required due to the way SETUP
+    /// transactions are handled for control endpoints; basically SETUP data
+    /// will overwrite whatever is in the buffer, regardless of BK0RDY state.
+    ///
+    /// See SAMD5x datasheet 38.6.2.6 Management of SETUP Transactions
     pub fn read(&mut self, buf: &mut [u8]) -> UsbResult<usize> {
         let desc = self.desc_bank();
         let size = desc.get_byte_count() as usize;
@@ -409,10 +414,37 @@ impl Bank<'_, OutBank> {
                 .copy_to_nonoverlapping(buf.as_mut_ptr(), size);
         }
 
-        desc.set_byte_count(0);
-        desc.set_multi_packet_size(0);
-
         Ok(size)
+    }
+
+    /// Called after a successful read, with the size of the read
+    fn read_done(&mut self, read_size: usize) {
+        let desc = self.desc_bank();
+
+        // Some hosts have been observed to send a new SETUP transaction very
+        // quickly after an OUT [1], and the USB peripheral will overwrite the
+        // OUT data with the setup [2].
+        //
+        // If Inner::read() was executing for the earlier OUT, and the SETUP
+        // arrived just after received_setup_interrupt() returned, then the call
+        // to read_done() could set the endpoint byte count to 0 for the SETUP
+        // transaction - resulting in the SETUP being lost.
+        //
+        // Fortunately, these fast SETUP transmissions have only been observed
+        // following OUT zero length packets (ZLPs), so we can minimise chances
+        // of this error by only clearing the byte count if it is expected to be
+        // nonzero.  If a SETUP arrives too quickly after a non-ZLP OUT, then we
+        // seem to have a timing hole...
+        //
+        // [1] https://github.com/atsamd-rs/atsamd/pull/738
+        // [2] SAMD5x datasheet 38.6.2.6 Management of SETUP Transactions
+        if read_size > 0 {
+            desc.set_byte_count(0);
+            desc.set_multi_packet_size(0);
+        }
+
+        self.clear_transfer_complete();
+        self.set_ready(false);
     }
 
     fn is_stalled(&self) -> bool {
@@ -853,19 +885,35 @@ impl Inner {
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         let mut bank = self.bank0(ep)?;
-        let rxstp = bank.received_setup_interrupt();
 
-        if bank.is_ready() || rxstp {
-            let size = bank.read(buf);
+        if bank.is_ready() {
+            let size = bank.read(buf)?;
 
-            if rxstp {
-                bank.clear_received_setup_interrupt();
+            if bank.received_setup_interrupt() {
+                // Host sent a SETUP transaction, potentially overwriting
+                // existing data in the endpoint buffer.
+                Err(UsbError::InvalidState)
+            } else {
+                // WARNING: Possible timing hole.  See comment in read_done()
+                bank.read_done(size);
+
+                Ok(size)
             }
+        } else {
+            Err(UsbError::WouldBlock)
+        }
+    }
 
-            bank.clear_transfer_complete();
-            bank.set_ready(false);
+    fn read_setup(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
+        let mut bank = self.bank0(ep)?;
 
-            size
+        if bank.received_setup_interrupt() {
+            let size = bank.read(buf)?;
+
+            bank.read_done(size);
+            bank.clear_received_setup_interrupt();
+
+            Ok(size)
         } else {
             Err(UsbError::WouldBlock)
         }
@@ -951,6 +999,10 @@ impl usb_device::bus::UsbBus for UsbBus {
 
     fn read(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
         disable_interrupts(|cs| self.inner.borrow(cs).borrow().read(ep, buf))
+    }
+
+    fn read_setup(&self, ep: EndpointAddress, buf: &mut [u8]) -> UsbResult<usize> {
+        disable_interrupts(|cs| self.inner.borrow(cs).borrow().read_setup(ep, buf))
     }
 
     fn set_stalled(&self, ep: EndpointAddress, stalled: bool) {
