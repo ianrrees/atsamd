@@ -26,6 +26,7 @@ bitflags! {
     /// The available interrupt flags are `DRE`, `TXC`, `RXC`, `RXS`, `CTSIC`, `RXBRK` and
     /// `ERROR`. The binary format of the underlying bits exactly matches the
     /// INTFLAG bits.
+    #[derive(Clone, Copy)]
     pub struct Flags: u8 {
         const DRE = DRE;
         const TXC = TXC;
