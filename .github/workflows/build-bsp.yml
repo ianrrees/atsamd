@@ -13,8 +13,7 @@ jobs:
       uses: ./.github/actions/list-BSPs
 
   build:
-    # This name is matched against the project's branch protection settings
-    name: "build (${{matrix.bsp.name}}, ${{matrix.toolchain}})"
+    name: "${{matrix.bsp.name}} (Tier ${{matrix.bsp.tier}}, ${{matrix.toolchain}})"
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.toolchain == 'nightly' || matrix.bsp.tier != 1 }}
     needs: setup
@@ -50,3 +49,12 @@ jobs:
         clippy_invocation=$(echo ${build_invocation} | sed 's/cargo build/cargo clippy/g')
         cd boards/${{ matrix.bsp.name }}
         $(${clippy_invocation})
+
+  check:
+    runs-on: ubuntu-latest
+    name: "Tier 1 BSPs all built on stable"
+    needs: build
+    steps:
+      - name: Echo
+        run: |
+          echo Tier 1 BSPs all built on stable
