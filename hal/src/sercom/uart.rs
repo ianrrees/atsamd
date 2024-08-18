@@ -174,8 +174,8 @@
 //! * [`Tx`] or [`TxDuplex`]: Can perform transmit transactions
 //! * [`Duplex`]: UART configured as duplex that can perform receive and
 //!   transmit transactions. Additionally, the [`split`] method can be
-//!  called to return a `Uart<C, RxDuplex>, Uart<C, TxDuplex>)` tuple. See the
-//! [Splitting](self#Splitting) section for more information.
+//!   called to return a `Uart<C, RxDuplex>, Uart<C, TxDuplex>)` tuple. See the
+//!   [Splitting](self#Splitting) section for more information.
 //!
 //! The nature of the underlying [`Pads`] contained inside [`Config`] determines
 //! the type returned by a call to [`enable`]. If the pads only have a `TX` pin
