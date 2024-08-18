@@ -91,21 +91,30 @@ pub enum Error {
     CollisionDetected,
 }
 
-impl TryFrom<Status> for () {
-    type Error = Error;
-
+impl Status {
+    /// Check whether [`Self`] originates from an error.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `STATUS` contains:
+    ///
+    /// * `PERR` - Parity Error
+    /// * `FERR` - Frame Error
+    /// * `BUFOVF` - Buffer Overflow
+    /// * `ISF` - Inconsistent Sync Field
+    /// * `COLL` - Collision Detected
     #[inline]
-    fn try_from(errors: Status) -> Result<(), Error> {
+    pub fn check_bus_error(self) -> Result<(), Error> {
         use Error::*;
-        if errors.contains(Status::PERR) {
+        if self.contains(Status::PERR) {
             Err(ParityError)
-        } else if errors.contains(Status::FERR) {
+        } else if self.contains(Status::FERR) {
             Err(FrameError)
-        } else if errors.contains(Status::BUFOVF) {
+        } else if self.contains(Status::BUFOVF) {
             Err(Overflow)
-        } else if errors.contains(Status::ISF) {
+        } else if self.contains(Status::ISF) {
             Err(InconsistentSyncField)
-        } else if errors.contains(Status::COLL) {
+        } else if self.contains(Status::COLL) {
             Err(CollisionDetected)
         } else {
             Ok(())

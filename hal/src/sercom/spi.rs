@@ -398,15 +398,18 @@ bitflags! {
     }
 }
 
-/// Convert [`Status`] flags into the corresponding [`Error`] variants
-impl TryFrom<Status> for () {
-    type Error = Error;
+impl Status {
+    /// Check whether [`Self`] originates from an error.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `STATUS` contains `BUFOVF` or `LENERR`
     #[inline]
-    fn try_from(status: Status) -> Result<(), Error> {
+    pub fn check_bus_error(self) -> Result<(), Error> {
         // Buffer overflow has priority
-        if status.contains(Status::BUFOVF) {
+        if self.contains(Status::BUFOVF) {
             Err(Error::Overflow)
-        } else if status.contains(Status::LENERR) {
+        } else if self.contains(Status::LENERR) {
             Err(Error::LengthError)
         } else {
             Ok(())
