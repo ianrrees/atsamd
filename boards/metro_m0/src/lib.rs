@@ -267,7 +267,7 @@ pub fn flash_spi_master(
 
     cs.set_high().unwrap();
 
-    (spi, cs)
+    (spi, cs);
 }
 
 /// I2C pads for the labelled I2C peripheral
