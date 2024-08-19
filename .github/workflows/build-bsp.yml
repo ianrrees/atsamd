@@ -67,18 +67,18 @@ jobs:
 
   check:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [setup, build]
     steps:
-      # checkout needs to happen first, as it clears the working directory
-      - name: Checkout sources
-        uses: actions/checkout@v4
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: successful-jobs
       - name: Tier 1 BSPs built on stable
+        env:
+          MATRIX: ${{ needs.setup.outputs.matrix }}
         run: |
-          tier_1_bsps=$(cat crates.json | jq -r -c '.boards | with_entries(select(.value.tier == 1)) | keys | join(" ")')
+          tier_1_bsps=$(jq -Mr -c '.bsp[] | select(.tier == 1) | .name' <<< ${MATRIX})
+          echo $tier_1_bsps
 
           success="true"
           for bsp in ${tier_1_bsps}; do
