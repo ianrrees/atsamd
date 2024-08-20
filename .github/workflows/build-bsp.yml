@@ -68,12 +68,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     needs: [setup, build]
+    name: Check tier 1 BSPs built on stable
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: successful-jobs
-      - name: Tier 1 BSPs built on stable
+      - name: Do checks
         env:
           MATRIX: ${{ needs.setup.outputs.matrix }}
         run: |
