@@ -1,11 +1,12 @@
 [workspace]
 resolver = "2"
-default-members = ["hal"]
+default-members = ["hal", "manage"]
 members = [
 	"hal",
 	"atsamd-hal-macros",
 	"pac/*",
 	"boards/*",
+	"manage",
 ]
 
 [profile.dev]

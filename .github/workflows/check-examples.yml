@@ -1,0 +1,21 @@
+name: Check Example Templates
+on: [push, pull_request]
+
+jobs:
+  check-example-templates:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Install Rust
+      run: |
+        rustup update
+        rustup set profile minimal
+    - name: Build manage
+      run: |
+        cargo build -p manage
+        cargo run example distribute
+        echo "Checking Git status, should be clean:"
+        echo
+        git status
+        [[ -z $(git status -s) ]] && echo "...clean"
