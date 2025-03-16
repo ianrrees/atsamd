@@ -6,6 +6,7 @@ members = [
 	"atsamd-hal-macros",
 	"pac/*",
 	"boards/*",
+	"examples/*",
 ]
 
 [profile.dev]

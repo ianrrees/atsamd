@@ -1,0 +1,31 @@
+[package]
+name = "usb-echo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m = "0.7"
+panic-halt = "0.2"
+usb-device = "0.3.1"
+usbd-serial = "0.2"
+
+[dependencies.metro_m0]
+optional = true
+path = "../../boards/metro_m0"
+features = ["usb"]
+
+[dependencies.feather_m0]
+optional = true
+path = "../../boards/feather_m0"
+features = ["usb"]
+
+[dependencies.feather_m4]
+optional = true
+path = "../../boards/feather_m4"
+features = ["usb"]
+
+[features]
+default = []
+metro_m0 = ["dep:metro_m0"]
+feather_m0 = ["dep:feather_m0"]
+feather_m4 = ["dep:feather_m4"]

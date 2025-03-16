@@ -1,9 +1,16 @@
 #![no_std]
 #![no_main]
 
-!#[allow(static_mut_refs)]
+#![allow(static_mut_refs)]
 
 use panic_halt as _;
+
+#[cfg(feature = "metro_m0")]
+use metro_m0 as bsp;
+#[cfg(feature = "feather_m0")]
+use feather_m0 as bsp;
+#[cfg(feature = "feather_m4")]
+use feather_m4 as bsp;
 
 use cortex_m::asm::delay as cycle_delay;
 use cortex_m::peripheral::NVIC;
@@ -13,7 +20,6 @@ use usbd_serial::{SerialPort, USB_CLASS_CDC};
 
 use bsp::hal;
 use bsp::pac;
-use metro_m0 as bsp;
 
 use bsp::entry;
 use hal::clock::GenericClockController;
@@ -59,9 +65,20 @@ fn main() -> ! {
         );
     }
 
+    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
     unsafe {
         core.NVIC.set_priority(interrupt::USB, 1);
         NVIC::unmask(interrupt::USB);
+    }
+
+    #[cfg(feature = "feather_m4")]
+    unsafe {
+        core.NVIC.set_priority(interrupt::USB_OTHER, 1);
+        core.NVIC.set_priority(interrupt::USB_TRCPT0, 1);
+        core.NVIC.set_priority(interrupt::USB_TRCPT1, 1);
+        NVIC::unmask(interrupt::USB_OTHER);
+        NVIC::unmask(interrupt::USB_TRCPT0);
+        NVIC::unmask(interrupt::USB_TRCPT1);
     }
 
     // Flash the LED in a spin loop to demonstrate that USB is
@@ -96,7 +113,26 @@ fn poll_usb() {
     };
 }
 
+#[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
 #[interrupt]
 fn USB() {
+    poll_usb();
+}
+
+#[cfg(feature = "feather_m4")]
+#[interrupt]
+fn USB_OTHER() {
+    poll_usb();
+}
+
+#[cfg(feature = "feather_m4")]
+#[interrupt]
+fn USB_TRCPT0() {
+    poll_usb();
+}
+
+#[cfg(feature = "feather_m4")]
+#[interrupt]
+fn USB_TRCPT1() {
     poll_usb();
 }
