@@ -31,15 +31,28 @@ use pac::{interrupt, CorePeripherals, Peripherals};
 fn main() -> ! {
     let mut peripherals = Peripherals::take().unwrap();
     let mut core = CorePeripherals::take().unwrap();
+
+    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
     let mut clocks = GenericClockController::with_internal_32kosc(
         peripherals.gclk,
         &mut peripherals.pm,
         &mut peripherals.sysctrl,
         &mut peripherals.nvmctrl,
     );
+
+    #[cfg(feature = "feather_m4")]
+    let mut clocks = GenericClockController::with_external_32kosc(
+        peripherals.gclk,
+        &mut peripherals.mclk,
+        &mut peripherals.osc32kctrl,
+        &mut peripherals.oscctrl,
+        &mut peripherals.nvmctrl,
+    );
+
     let pins = bsp::Pins::new(peripherals.port);
     let mut red_led: bsp::RedLed = pins.d13.into();
 
+    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
     let bus_allocator = unsafe {
         USB_ALLOCATOR = Some(bsp::usb_allocator(
             peripherals.usb,
@@ -47,6 +60,19 @@ fn main() -> ! {
             &mut peripherals.pm,
             pins.usb_dm,
             pins.usb_dp,
+        ));
+        USB_ALLOCATOR.as_ref().unwrap()
+    };
+
+    // TODO see if the BSP usb_allocator() can be standardised 
+    #[cfg(feature = "feather_m4")]
+    let bus_allocator = unsafe {
+        USB_ALLOCATOR = Some(bsp::usb_allocator(
+            pins.usb_dm,
+            pins.usb_dp,
+            peripherals.usb,
+            &mut clocks,
+            &mut peripherals.mclk,
         ));
         USB_ALLOCATOR.as_ref().unwrap()
     };
