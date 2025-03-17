@@ -9,35 +9,9 @@ enum Target {
 
 fn main() {
     #![allow(unused_mut)]
+    #![allow(unused_assignments)]
 
-    let mut boards_selected = 0;
-    #[allow(unused_assignments)]
     let mut target: Option<Target> = None;
-
-    // n.b. if the feature name were instead like board_metro_m0 then this could be generic
-
-    #[cfg(feature = "metro_m0")]
-    {
-        boards_selected += 1;
-        target = Some(Target::Samd21);
-    }
-
-    #[cfg(feature = "feather_m0")]
-    {
-        boards_selected += 1;
-        target = Some(Target::Samd21);
-    }
-
-    #[cfg(feature = "feather_m4")]
-    {
-        boards_selected += 1;
-        target = Some(Target::Samd51);
-    }
-
-    if boards_selected != 1 {
-        eprintln!("Exactly one board must be selected via a feature eg --feature=\"metro_m0\"");
-        exit(1);
-    }
 
     // TODO this should cache the last target selection somewhere, and if that
     // has changed error out and instruct the user to re-build.  The target
@@ -45,6 +19,8 @@ fn main() {
     // compiled bin will wind up targeting whatever was selected on the
     // /previous/ build (perhaps just defaulting to the host architecture, which
     // errors).
+
+    // TODO possible to grab memory.x and .cargo/config.toml from the _boards dependency?
 
     if let Some(target) = target {
         match create_dir(".cargo") {

@@ -9,14 +9,9 @@ panic-halt = "0.2"
 usb-device = "0.3.1"
 usbd-serial = "0.2"
 
-[dependencies.metro_m0]
+[dependencies.samd21_boards]
 optional = true
-path = "../../boards/metro_m0"
-features = ["usb"]
-
-[dependencies.feather_m0]
-optional = true
-path = "../../boards/feather_m0"
+path = "../../boards/samd21_boards"
 features = ["usb"]
 
 [dependencies.feather_m4]
@@ -26,6 +21,11 @@ features = ["usb"]
 
 [features]
 default = []
-metro_m0 = ["dep:metro_m0"]
-feather_m0 = ["dep:feather_m0"]
-feather_m4 = ["dep:feather_m4"]
+
+# IUO
+m0 = []
+m4 = []
+
+metro_m0 = ["dep:samd21_boards", "samd21_boards/metro_m0", "m0"]
+feather_m0 = ["dep:samd21_boards", "samd21_boards/feather_m0", "m0"]
+feather_m4 = ["dep:feather_m4", "m4"]

@@ -5,10 +5,8 @@
 
 use panic_halt as _;
 
-#[cfg(feature = "metro_m0")]
-use metro_m0 as bsp;
-#[cfg(feature = "feather_m0")]
-use feather_m0 as bsp;
+#[cfg(feature = "m0")]
+use samd21_boards as bsp;
 #[cfg(feature = "feather_m4")]
 use feather_m4 as bsp;
 
@@ -32,7 +30,7 @@ fn main() -> ! {
     let mut peripherals = Peripherals::take().unwrap();
     let mut core = CorePeripherals::take().unwrap();
 
-    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
+    #[cfg(feature = "m0")]
     let mut clocks = GenericClockController::with_internal_32kosc(
         peripherals.gclk,
         &mut peripherals.pm,
@@ -40,7 +38,7 @@ fn main() -> ! {
         &mut peripherals.nvmctrl,
     );
 
-    #[cfg(feature = "feather_m4")]
+    #[cfg(feature = "m4")]
     let mut clocks = GenericClockController::with_external_32kosc(
         peripherals.gclk,
         &mut peripherals.mclk,
@@ -52,7 +50,7 @@ fn main() -> ! {
     let pins = bsp::Pins::new(peripherals.port);
     let mut red_led: bsp::RedLed = pins.d13.into();
 
-    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
+    #[cfg(feature = "m0")]
     let bus_allocator = unsafe {
         USB_ALLOCATOR = Some(bsp::usb_allocator(
             peripherals.usb,
@@ -65,7 +63,7 @@ fn main() -> ! {
     };
 
     // TODO see if the BSP usb_allocator() can be standardised 
-    #[cfg(feature = "feather_m4")]
+    #[cfg(feature = "m4")]
     let bus_allocator = unsafe {
         USB_ALLOCATOR = Some(bsp::usb_allocator(
             pins.usb_dm,
@@ -91,13 +89,13 @@ fn main() -> ! {
         );
     }
 
-    #[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
+    #[cfg(feature = "m0")]
     unsafe {
         core.NVIC.set_priority(interrupt::USB, 1);
         NVIC::unmask(interrupt::USB);
     }
 
-    #[cfg(feature = "feather_m4")]
+    #[cfg(feature = "m4")]
     unsafe {
         core.NVIC.set_priority(interrupt::USB_OTHER, 1);
         core.NVIC.set_priority(interrupt::USB_TRCPT0, 1);
@@ -139,25 +137,25 @@ fn poll_usb() {
     };
 }
 
-#[cfg(any(feature = "metro_m0", feature = "feather_m0"))]
+#[cfg(feature = "m0")]
 #[interrupt]
 fn USB() {
     poll_usb();
 }
 
-#[cfg(feature = "feather_m4")]
+#[cfg(feature = "m4")]
 #[interrupt]
 fn USB_OTHER() {
     poll_usb();
 }
 
-#[cfg(feature = "feather_m4")]
+#[cfg(feature = "m4")]
 #[interrupt]
 fn USB_TRCPT0() {
     poll_usb();
 }
 
-#[cfg(feature = "feather_m4")]
+#[cfg(feature = "m4")]
 #[interrupt]
 fn USB_TRCPT1() {
     poll_usb();
