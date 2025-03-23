@@ -1,7 +1,7 @@
 error[E0463]: can't find crate for `std`
   |
   = note: the `thumbv6m-none-eabi` target may not support the standard library
-  = note: `std` is required by `autocfg_6e1dbf29c8abe9c5_0` because it does not declare `#![no_std]`
+  = note: `std` is required by `autocfg_ed80505fad6230fb_0` because it does not declare `#![no_std]`
 
 error: aborting due to 1 previous error
 

@@ -1,5 +1,5 @@
-; ModuleID = 'autocfg_258cc24b31bf48c1_2.ef869ed70bd48d97-cgu.0'
-source_filename = "autocfg_258cc24b31bf48c1_2.ef869ed70bd48d97-cgu.0"
+; ModuleID = 'autocfg_0a81e06d9b759763_2.bb49df03c4526ec0-cgu.0'
+source_filename = "autocfg_0a81e06d9b759763_2.bb49df03c4526ec0-cgu.0"
 target datalayout = "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64"
 target triple = "thumbv6m-unknown-none-eabi"
 
@@ -8,7 +8,7 @@ target triple = "thumbv6m-unknown-none-eabi"
 
 ; core::f64::<impl f64>::total_cmp
 ; Function Attrs: inlinehint nounwind
-define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h94e895519a4b0960E"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
+define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h274605034b41024bE"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
 start:
   %_6 = alloca [8 x i8], align 8
   %_3 = alloca [8 x i8], align 8
@@ -40,12 +40,12 @@ start:
   ret i8 %_0
 }
 
-; autocfg_258cc24b31bf48c1_2::probe
+; autocfg_0a81e06d9b759763_2::probe
 ; Function Attrs: nounwind
-define dso_local void @_ZN26autocfg_258cc24b31bf48c1_25probe17hb34845b09ae2a9b8E() unnamed_addr #1 {
+define dso_local void @_ZN26autocfg_0a81e06d9b759763_25probe17h0269a6e74f5d5362E() unnamed_addr #1 {
 start:
 ; call core::f64::<impl f64>::total_cmp
-  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h94e895519a4b0960E"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c) #2
+  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h274605034b41024bE"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c) #2
   ret void
 }
 

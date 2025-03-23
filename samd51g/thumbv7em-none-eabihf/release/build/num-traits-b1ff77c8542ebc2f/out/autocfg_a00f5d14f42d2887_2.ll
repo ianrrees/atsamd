@@ -1,14 +1,14 @@
-; ModuleID = 'autocfg_647e22559735d221_2.df02794331df7aa5-cgu.0'
-source_filename = "autocfg_647e22559735d221_2.df02794331df7aa5-cgu.0"
+; ModuleID = 'autocfg_a00f5d14f42d2887_2.16ec4a6ee9c5ac49-cgu.0'
+source_filename = "autocfg_a00f5d14f42d2887_2.16ec4a6ee9c5ac49-cgu.0"
 target datalayout = "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64"
-target triple = "thumbv6m-unknown-none-eabi"
+target triple = "thumbv7em-unknown-none-eabihf"
 
 @alloc_f93507f8ba4b5780b14b2c2584609be0 = private unnamed_addr constant <{ [8 x i8] }> <{ [8 x i8] c"\00\00\00\00\00\00\F0?" }>, align 8
 @alloc_ef0a1f828f3393ef691f2705e817091c = private unnamed_addr constant <{ [8 x i8] }> <{ [8 x i8] c"\00\00\00\00\00\00\00@" }>, align 8
 
 ; core::f64::<impl f64>::total_cmp
 ; Function Attrs: inlinehint nounwind
-define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h904383551b3859a4E"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
+define internal i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h5718d1517ce43399E"(ptr align 8 %self, ptr align 8 %other) unnamed_addr #0 {
 start:
   %_6 = alloca [8 x i8], align 8
   %_3 = alloca [8 x i8], align 8
@@ -40,17 +40,17 @@ start:
   ret i8 %_0
 }
 
-; autocfg_647e22559735d221_2::probe
+; autocfg_a00f5d14f42d2887_2::probe
 ; Function Attrs: nounwind
-define dso_local void @_ZN26autocfg_647e22559735d221_25probe17hf4578ab3605e8298E() unnamed_addr #1 {
+define dso_local void @_ZN26autocfg_a00f5d14f42d2887_25probe17h0f9b407af543f0d4E() unnamed_addr #1 {
 start:
 ; call core::f64::<impl f64>::total_cmp
-  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h904383551b3859a4E"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c) #2
+  %_1 = call i8 @"_ZN4core3f6421_$LT$impl$u20$f64$GT$9total_cmp17h5718d1517ce43399E"(ptr align 8 @alloc_f93507f8ba4b5780b14b2c2584609be0, ptr align 8 @alloc_ef0a1f828f3393ef691f2705e817091c) #2
   ret void
 }
 
-attributes #0 = { inlinehint nounwind "frame-pointer"="all" "target-cpu"="generic" "target-features"="+strict-align,+atomics-32" }
-attributes #1 = { nounwind "frame-pointer"="all" "target-cpu"="generic" "target-features"="+strict-align,+atomics-32" }
+attributes #0 = { inlinehint nounwind "frame-pointer"="all" "target-cpu"="generic" "target-features"="+vfp4d16sp" }
+attributes #1 = { nounwind "frame-pointer"="all" "target-cpu"="generic" "target-features"="+vfp4d16sp" }
 attributes #2 = { nounwind }
 
 !llvm.ident = !{!0}
