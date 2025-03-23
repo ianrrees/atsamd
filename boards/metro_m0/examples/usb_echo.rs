@@ -9,11 +9,16 @@ use usb_device::bus::UsbBusAllocator;
 use usb_device::prelude::*;
 use usbd_serial::{SerialPort, USB_CLASS_CDC};
 
+// The `bsp` module provides abstraction, allowing maintainers to share examples
+// across multiple BSPs.  Typical firmware should use a particular BSP eg:
+//
+// use metro_m0 as bsp;
+mod bsp;
+
 use bsp::hal;
 use bsp::pac;
-use metro_m0 as bsp;
-
 use bsp::entry;
+
 use hal::clock::GenericClockController;
 use hal::prelude::*;
 use hal::usb::UsbBus;

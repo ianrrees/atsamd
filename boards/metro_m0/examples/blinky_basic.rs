@@ -6,11 +6,16 @@ use panic_halt as _;
 #[cfg(feature = "use_semihosting")]
 use panic_semihosting as _;
 
+// The `bsp` module provides abstraction, allowing maintainers to share examples
+// across multiple BSPs.  Typical firmware should use a particular BSP eg:
+//
+// use metro_m0 as bsp;
+mod bsp;
+
 use bsp::hal;
 use bsp::pac;
-use metro_m0 as bsp;
-
 use bsp::entry;
+
 use hal::clock::GenericClockController;
 use hal::delay::Delay;
 use hal::prelude::*;
