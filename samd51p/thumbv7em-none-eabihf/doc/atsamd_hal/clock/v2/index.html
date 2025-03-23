@@ -101,12 +101,12 @@ restrict the producer clock API when N &gt; 0.</p>
 N, within the type system. To accomplish this, we need both a way to
 represent N in the type system and a way to increase or decrease N when
 making or breaking connections in the clock tree.</p>
-<p>To represent N, we can use type-level, <a href="../../https://docs.rs/typenum/1.12.0/typenum/marker_traits/trait.Unsigned.html" title="trait typenum::marker_traits::Unsigned"><code>Unsigned</code></a> integers from the
-<a href="../../https://docs.rs/typenum/1.12.0/typenum/index.html" title="mod typenum"><code>typenum</code></a> crate (i.e. <a href="../../https://docs.rs/typenum/1.12.0/typenum/gen/consts/type.U0.html" title="type typenum::gen::consts::U0"><code>U0</code></a>, <a href="../../sercom/spi/lengths/type.U1.html" title="type atsamd_hal::sercom::spi::lengths::U1"><code>U1</code></a>, etc). And we can use a type
+<p>To represent N, we can use type-level, <a href="../../../typenum/marker_traits/trait.Unsigned.html" title="trait typenum::marker_traits::Unsigned"><code>Unsigned</code></a> integers from the
+<a href="../../../typenum/index.html" title="mod typenum"><code>typenum</code></a> crate (i.e. <a href="../../../typenum/gen/consts/type.U0.html" title="type typenum::gen::consts::U0"><code>U0</code></a>, <a href="../../sercom/spi/lengths/type.U1.html" title="type atsamd_hal::sercom::spi::lengths::U1"><code>U1</code></a>, etc). And we can use a type
 <em>parameter</em>, <code>N</code>, to represent some unknown, type-level number.</p>
 <p>Next, we need a way to increase or decrease the type parameter <code>N</code>. The
-<a href="../../https://docs.rs/typenum/1.12.0/typenum/index.html" title="mod typenum"><code>typenum</code></a> crate provides type aliases <a href="../../https://docs.rs/typenum/1.12.0/typenum/operator_aliases/type.Add1.html" title="type typenum::operator_aliases::Add1"><code>Add1</code></a> and <a href="../../https://docs.rs/typenum/1.12.0/typenum/operator_aliases/type.Sub1.html" title="type typenum::operator_aliases::Sub1"><code>Sub1</code></a> that map from
-each <a href="../../https://docs.rs/typenum/1.12.0/typenum/marker_traits/trait.Unsigned.html" title="trait typenum::marker_traits::Unsigned"><code>Unsigned</code></a> integer to its successor and predecessor types,
+<a href="../../../typenum/index.html" title="mod typenum"><code>typenum</code></a> crate provides type aliases <a href="../../../typenum/operator_aliases/type.Add1.html" title="type typenum::operator_aliases::Add1"><code>Add1</code></a> and <a href="../../../typenum/operator_aliases/type.Sub1.html" title="type typenum::operator_aliases::Sub1"><code>Sub1</code></a> that map from
+each <a href="../../../typenum/marker_traits/trait.Unsigned.html" title="trait typenum::marker_traits::Unsigned"><code>Unsigned</code></a> integer to its successor and predecessor types,
 respectively. We can leverage these to create our own type with a counter
 that we <a href="../../typelevel/trait.Increment.html" title="trait atsamd_hal::typelevel::Increment"><code>Increment</code></a> or <a href="../../typelevel/trait.Decrement.html" title="trait atsamd_hal::typelevel::Decrement"><code>Decrement</code></a> at compile-time. These two traits
 form the foundation for our strategy for handling 1:N clocks in this module.</p>

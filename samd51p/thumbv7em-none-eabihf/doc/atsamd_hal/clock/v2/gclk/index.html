@@ -146,7 +146,7 @@ functionality on <a href="type.EnabledGclk0.html" title="type atsamd_hal::clock:
 <p>We model the main clock’s consumption of <code>Gclk0</code> by setting its <a href="../struct.Enabled.html" title="struct atsamd_hal::clock::v2::Enabled"><code>Enabled</code></a>
 counter to <a href="../../../sercom/spi/lengths/type.U1.html" title="type atsamd_hal::sercom::spi::lengths::U1"><code>U1</code></a> in <a href="../fn.clock_system_at_reset.html" title="fn atsamd_hal::clock::v2::clock_system_at_reset"><code>clock_system_at_reset</code></a>. This prevents users from
 ever disabling <code>EnabledGclk0</code>, because there is no way to <a href="../../../typelevel/trait.Decrement.html" title="trait atsamd_hal::typelevel::Decrement"><code>Decrement</code></a> its
-<code>Counter</code> to <a href="../../../https://docs.rs/typenum/1.12.0/typenum/gen/consts/type.U0.html" title="type typenum::gen::consts::U0"><code>U0</code></a>.</p>
+<code>Counter</code> to <a href="../../../../typenum/gen/consts/type.U0.html" title="type typenum::gen::consts::U0"><code>U0</code></a>.</p>
 <p>Additionally, we provide functions to change the clock <code>Source</code>, divider,
 etc. on <code>EnabledGclk0</code>, but we restrict them to the case where <code>N = U1</code>.
 This prevents users from changing its <code>Source</code> or divider if any <em>other,
