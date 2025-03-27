@@ -1,5 +1,1 @@
 # Config file used by `manage` to distribute examples to the BSPs
-
-[examples.usb_echo2]
-boards = ["metro_m0", "metro_m4"]
-required-features = ["usb"]

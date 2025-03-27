@@ -12,6 +12,8 @@ pub enum Error {
     HBRender(handlebars::RenderError),
     #[error("Handlebars template error: {0}")]
     HBTemplate(handlebars::TemplateError),
+    #[error("Failure aleady logged to stderr")]
+    Logged,
     #[error("{0}")]
     Other(String),
 }
