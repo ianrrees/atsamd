@@ -3,6 +3,7 @@
 mod error;
 mod example;
 use clap::{Parser, Subcommand};
+use std::process::exit;
 
 #[derive(Parser)]
 #[command(version, about = "Manages atsamd-rs/atsamd", long_about = None)]
@@ -22,8 +23,16 @@ pub enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
+    match match &cli.command {
         Commands::Example(example_commands) => example::run(example_commands),
+    } {
+        Ok(()) => {}
+        Err(error::Error::Logged) => {
+            exit(1);
+        }
+        Err(err) => {
+            eprintln!("Command failed with error: {}", err);
+            exit(2);
+        }
     }
-    .unwrap();
 }

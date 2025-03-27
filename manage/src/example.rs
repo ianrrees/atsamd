@@ -4,8 +4,8 @@ use crate::error::{Error, Result};
 use clap::Subcommand;
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
-use std::fs::{File, read_dir, read_to_string};
-use std::io::Write;
+use std::fs::{copy, File, read_dir, read_to_string};
+use std::io::{Write};
 use std::path::PathBuf;
 use toml::Table;
 
@@ -113,18 +113,19 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
         // but here there doesn't really seem to be a need for that.
         let mut handlebars = Handlebars::new();
 
-        let source = read_to_string(&rust_source_path)?;
-        handlebars.register_template_string(example_name, source)?;
+        if is_generic {
+            let source = read_to_string(&rust_source_path)?;
+            handlebars.register_template_string(example_name, source).map_err(|err| {
+                eprintln!("Error while rendering {example_name} for {:?}:", boards);
+                eprintln!("{}", err);
+                Error::Logged
+            })?;
+        }
 
         for board in boards {
             if board.is_empty() {
                 return Err(Error::Other(format!("Empty board name for {example_name}")));
             }
-
-            let mut data = BTreeMap::new();
-            data.insert("bsp".to_string(), board);
-
-            let rendered = handlebars.render(example_name, &data)?;
 
             // TODO make the examples directory
             
@@ -133,11 +134,23 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
                 .join(PathBuf::from("examples"))
                 .join(PathBuf::from(example_name).with_extension("rs"));
 
-            let mut filebuf = File::create(rendered_path)?;
-            filebuf.write_all(rendered.as_bytes())?;
+            if is_generic {
+                let mut data = BTreeMap::new();
+                data.insert("bsp".to_string(), board);
+    
+                let rendered = handlebars.render(example_name, &data).map_err(|err| {
+                    eprintln!("Error while rendering {example_name} for {board}:");
+                    eprintln!("{}", err.reason());
+                    Error::HBRender(err)
+                })?;
 
-            // TODO append to the BSP's Cargo.toml
-            // Same for README.md?
+                // TODO if there's an existing file, compare it for equality and error out if we'd change the file
+    
+                let mut filebuf = File::create(rendered_path)?;
+                filebuf.write_all(rendered.as_bytes())?;
+            } else {
+                copy(&rust_source_path, rendered_path)?;
+            }
         }
     }
 
