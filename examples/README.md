@@ -8,7 +8,16 @@ specific BSP as it is copied to the BSP crate.  `manage` is configured through
 `/manage.toml`, which can be used as a reference to see which BSPs support
 generic examples.
 
-## Naming
 Example files are named like `<bsp group>-<example name>.rs`, where `<bsp
-group>` is either a specific BSP crate name, or `generic` to indicate that
-`examples.toml` will contain a list of BSPs that support the example.
+group>` is either a specific BSP crate name, or an identifier for a group of
+BSPs.  When `<bsp group>` is a specific BSP, the example file is simply renamed
+to `<example name>` and copied to that BSP's example directory.  Otherwise, the
+example file is processed as a template, renamed, and copied in to one or more
+BSPs according to an entry in `/manage.toml`.
+
+## Modifying Examples
+After modifying source in this directory, run `cargo run example disribute` from
+the workspace root directory, then check results in applicable BSP(s).
+
+Before opening a Pull Request for any changes to examples, please ensure that
+`cargo run example distribute` has been used to update the generated examples.
