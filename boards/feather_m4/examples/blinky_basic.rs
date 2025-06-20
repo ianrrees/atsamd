@@ -2,17 +2,21 @@
 #![no_main]
 
 use feather_m4 as bsp;
+
+use bsp::hal;
+use bsp::pac;
+
 #[cfg(not(feature = "use_semihosting"))]
 use panic_halt as _;
 #[cfg(feature = "use_semihosting")]
 use panic_semihosting as _;
 
 use bsp::entry;
-use bsp::hal;
 use hal::clock::GenericClockController;
-use hal::delay::Delay;
-use hal::pac::{CorePeripherals, Peripherals};
 use hal::prelude::*;
+use pac::{CorePeripherals, Peripherals};
+
+use hal::delay::Delay;
 
 #[entry]
 fn main() -> ! {
@@ -29,9 +33,9 @@ fn main() -> ! {
     let mut red_led = pins.d13.into_push_pull_output();
     let mut delay = Delay::new(core.SYST, &mut clocks);
     loop {
-        delay.delay_ms(2000u16);
+        delay.delay_ms(200u8);
         red_led.set_high().unwrap();
-        delay.delay_ms(2000u16);
+        delay.delay_ms(200u8);
         red_led.set_low().unwrap();
     }
 }
