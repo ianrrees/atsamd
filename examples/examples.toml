@@ -1,3 +1,6 @@
 # Config file used by `manage` to distribute examples to the BSPs
 [examples.blinky_basic]
 boards = ["feather_m4", "metro_m4"]
+
+[examples.async_dmac]
+boards = ["metro_m4", "grand_central_m4", "feather_m4"]

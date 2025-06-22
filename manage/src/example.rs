@@ -4,8 +4,8 @@ use crate::error::{Error, Result};
 use clap::Subcommand;
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
-use std::fs::{copy, File, read_dir, read_to_string};
-use std::io::{Write};
+use std::fs::{File, copy, read_dir, read_to_string};
+use std::io::Write;
 use std::path::PathBuf;
 use toml::Table;
 
@@ -115,11 +115,13 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
 
         if is_generic {
             let source = read_to_string(&rust_source_path)?;
-            handlebars.register_template_string(example_name, source).map_err(|err| {
-                eprintln!("Error while rendering {example_name} for {:?}:", boards);
-                eprintln!("{}", err);
-                Error::Logged
-            })?;
+            handlebars
+                .register_template_string(example_name, source)
+                .map_err(|err| {
+                    eprintln!("Error while rendering {example_name} for {:?}:", boards);
+                    eprintln!("{}", err);
+                    Error::Logged
+                })?;
         }
 
         for board in boards {
@@ -128,7 +130,7 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
             }
 
             // TODO make the examples directory
-            
+
             let rendered_path = bsps_path
                 .join(PathBuf::from(board))
                 .join(PathBuf::from("examples"))
@@ -137,15 +139,16 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
             if is_generic {
                 let mut data = BTreeMap::new();
                 data.insert("bsp".to_string(), board);
-    
+
                 let rendered = handlebars.render(example_name, &data).map_err(|err| {
                     eprintln!("Error while rendering {example_name} for {board}:");
                     eprintln!("{}", err.reason());
                     Error::HBRender(err)
                 })?;
 
-                // TODO if there's an existing file, compare it for equality and error out if we'd change the file
-    
+                // TODO if there's an existing file, compare it for equality and error out if
+                // we'd change the file
+
                 let mut filebuf = File::create(rendered_path)?;
                 filebuf.write_all(rendered.as_bytes())?;
             } else {

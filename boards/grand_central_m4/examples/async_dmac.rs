@@ -1,6 +1,6 @@
+
 //! This example shows a safe API to
 //! execute a memory-to-memory DMA transfer
-
 #![no_std]
 #![no_main]
 
@@ -9,11 +9,12 @@ use panic_probe as _;
 
 use bsp::hal;
 use bsp::pac;
+use grand_central_m4 as bsp;
+
 use hal::{
     clock::GenericClockController,
     dmac::{DmaController, PriorityLevel, TriggerAction, TriggerSource},
 };
-use metro_m4 as bsp;
 
 atsamd_hal::bind_multiple_interrupts!(struct Irqs {
     DMAC: [DMAC_0, DMAC_1, DMAC_2, DMAC_OTHER] => atsamd_hal::dmac::InterruptHandler;

@@ -9,7 +9,7 @@ use panic_probe as _;
 
 use bsp::hal;
 use bsp::pac;
-use metro_m4 as bsp;
+use feather_m4 as bsp;
 
 use hal::{
     clock::GenericClockController,
