@@ -4,6 +4,7 @@ use crate::error::{Error, Result};
 use clap::Subcommand;
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
+use std::ffi::OsString;
 use std::fs::{copy, File, read_dir, read_to_string};
 use std::io::{Write};
 use std::path::PathBuf;
@@ -27,6 +28,20 @@ pub fn run(commands: &Commands) -> Result<()> {
     }
 }
 
+/// Distributes each source file the examples directory to the BSPs
+///
+/// A combination of the source file names and examples.toml determine which
+/// BSPs the example applies to.  Filenames are of the form
+/// <destination>-<example_name>.rs ; if <destination> matches a BSP directory
+/// name then the file is simply copied as
+/// <destination>/examples/<example_name>.rs , otherwise then the file is
+/// processed as a template and examples.toml is expected to contain an array
+/// entry of the boards that it applies to:
+///
+/// ```toml
+/// [destination.example_name]
+/// boards = ["some", "list", "of", "boards"]
+/// ```
 fn distribute(examples: &String, bsps: &String) -> Result<()> {
     let toml = read_to_string(PathBuf::from(examples).join("examples.toml"))?;
 
@@ -34,6 +49,21 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
 
     // TODO error out if this isn't a directory
     let bsps_path = PathBuf::from(bsps);
+
+    let bsp_dirs: Vec<_> = read_dir(bsps)?.filter_map(|entry| {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.is_dir() {
+                // file_name() returns None only if path terminates in `..`, and
+                // read_dir() won't yield those
+                Some(path.file_name().unwrap().to_owned())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }).collect();
 
     // Filter the example directory contents to get files with "rs" extension
     for rust_source_path in read_dir(examples)?.filter_map(|entry| {
@@ -80,17 +110,18 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
         let target = parts[0];
         let example_name = parts[1];
 
-        let is_generic = target == "generic";
-
-        let example_config = examples_toml
-            .get("examples")
-            .and_then(|list| list.get(example_name));
+        let is_generic = !bsp_dirs.contains(&OsString::from(target));
 
         let boards = if is_generic {
+            let example_config = examples_toml
+                .get(target)
+                .and_then(|list| list.get(example_name));
+
             let toml_array = example_config
                 .and_then(|c| c.get("boards").and_then(|a| a.as_array()))
                 .ok_or(Error::Other(format!(
-                    "examples.toml entry for generic example `{example_name}` doesn't have a `boards` array"
+                    "examples.toml entry for generic example `{}` doesn't exist or doesn't have a `boards` array",
+                    rust_source_path.file_name().unwrap().to_string_lossy()
                 )))?;
 
             let mut boards = Vec::new();
