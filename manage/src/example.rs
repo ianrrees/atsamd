@@ -8,7 +8,7 @@ use std::ffi::OsString;
 use std::fs::{File, copy, read_dir, read_to_string};
 use std::io::Write;
 use std::path::PathBuf;
-use toml::Table;
+use toml::{Table, Value};
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
@@ -23,8 +23,12 @@ pub enum Commands {
 
 /// Entry point for example management
 pub fn run(config: Table, commands: &Commands) -> Result<()> {
+    let examples_toml = config
+        .get("example")
+        .ok_or(Error::Other("No example section in TOML".to_string()))?;
+
     match commands {
-        Commands::Distribute { examples, bsps } => distribute(examples, bsps, config),
+        Commands::Distribute { examples, bsps } => distribute(examples, bsps, examples_toml),
     }
 }
 
@@ -42,17 +46,18 @@ pub fn run(config: Table, commands: &Commands) -> Result<()> {
 /// [destination.example_name]
 /// boards = ["some", "list", "of", "boards"]
 /// ```
-fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<()> {
+fn distribute(examples: &String, bsps: &String, examples_toml: &Value) -> Result<()> {
     // TODO error out if this isn't a directory
     let bsps_path = PathBuf::from(bsps);
 
+    // Generate a list of the BSPs based on directory names: ["metro_m0", ...
     let bsp_dirs: Vec<_> = read_dir(bsps)?
         .filter_map(|entry| {
             if let Ok(entry) = entry {
                 let path = entry.path();
                 if path.is_dir() {
-                    // file_name() returns None only if path terminates in `..`, and
-                    // read_dir() won't yield those
+                    // file_name() returns None only if path terminates in `..`,
+                    // and read_dir() won't yield those
                     Some(path.file_name().unwrap().to_owned())
                 } else {
                     None
@@ -81,7 +86,8 @@ fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<
         // Above filter means we know this is a file and therefore has a name:
         let source_name = rust_source_path.file_name().unwrap();
 
-        // ...but perhaps it's not a UTF-8 name (required as it selects from TOML)
+        // ...but perhaps it's not a UTF-8 name (required as it may select from
+        // TOML)
         let example_target_name =
             rust_source_path
                 .file_stem()
@@ -92,9 +98,9 @@ fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<
                     rust_source_path
                 )))?;
 
-        // We split the example names on the first hyphen, to determine whether
-        // they're generic (and need to refer to example.toml for destinations)
-        // or specific to just one BSP.
+        // We split the example names on the first hyphen to determine whether
+        // they're generic -and need to refer to config for destinations- or
+        // specific to just one BSP.
 
         let parts: Vec<&str> = example_target_name.splitn(2, "-").collect();
 
@@ -118,7 +124,7 @@ fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<
             let toml_array = example_config
                 .and_then(|c| c.get("boards").and_then(|a| a.as_array()))
                 .ok_or(Error::Other(format!(
-                    "examples.toml entry for generic example `{}` doesn't exist or doesn't have a `boards` array",
+                    "config entry for generic example `{}` doesn't exist or doesn't have a `boards` array",
                     rust_source_path.file_name().unwrap().to_string_lossy()
                 )))?;
 
@@ -133,6 +139,7 @@ fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<
                     )));
                 }
             }
+
             boards
         } else {
             vec![target]
@@ -175,8 +182,8 @@ fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<
                     Error::HBRender(err)
                 })?;
 
-                // TODO if there's an existing file, compare it for equality and error out if
-                // we'd change the file
+                // TODO if there's an existing file, compare it for equality and
+                // error out if we'd change the file
 
                 let mut filebuf = File::create(rendered_path)?;
                 filebuf.write_all(rendered.as_bytes())?;

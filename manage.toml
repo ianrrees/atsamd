@@ -1,0 +1,4 @@
+# Config file used by `manage`
+
+[example.m4.blinky_basic]
+boards = ["feather_m4", "metro_m4"]
