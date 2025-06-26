@@ -15,9 +15,9 @@ pub enum Commands {
     /// Distribute examples amongst BSPs
     Distribute {
         /// Path to the examples
-        examples: String,
+        examples: PathBuf,
         /// Path to the BSPs
-        bsps: String,
+        bsps: PathBuf,
     },
 }
 
@@ -46,12 +46,11 @@ pub fn run(config: Table, commands: &Commands) -> Result<()> {
 /// [destination.example_name]
 /// boards = ["some", "list", "of", "boards"]
 /// ```
-fn distribute(examples: &String, bsps: &String, examples_toml: &Value) -> Result<()> {
-    // TODO error out if this isn't a directory
-    let bsps_path = PathBuf::from(bsps);
+fn distribute(examples: &PathBuf, bsps_path: &PathBuf, examples_toml: &Value) -> Result<()> {
+    // TODO error out if bsps isn't a directory
 
     // Generate a list of the BSPs based on directory names: ["metro_m0", ...
-    let bsp_dirs: Vec<_> = read_dir(bsps)?
+    let bsp_dirs: Vec<_> = read_dir(bsps_path)?
         .filter_map(|entry| {
             if let Ok(entry) = entry {
                 let path = entry.path();
@@ -165,7 +164,7 @@ fn distribute(examples: &String, bsps: &String, examples_toml: &Value) -> Result
                 return Err(Error::Other(format!("Empty board name for {example_name}")));
             }
 
-            // TODO make the examples directory
+            // TODO make the examples directory?
 
             let rendered_path = bsps_path
                 .join(PathBuf::from(board))
