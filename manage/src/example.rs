@@ -5,8 +5,8 @@ use clap::Subcommand;
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
-use std::fs::{copy, File, read_dir, read_to_string};
-use std::io::{Write};
+use std::fs::{File, copy, read_dir, read_to_string};
+use std::io::Write;
 use std::path::PathBuf;
 use toml::Table;
 
@@ -22,9 +22,9 @@ pub enum Commands {
 }
 
 /// Entry point for example management
-pub fn run(commands: &Commands) -> Result<()> {
+pub fn run(config: Table, commands: &Commands) -> Result<()> {
     match commands {
-        Commands::Distribute { examples, bsps } => distribute(examples, bsps),
+        Commands::Distribute { examples, bsps } => distribute(examples, bsps, config),
     }
 }
 
@@ -42,28 +42,26 @@ pub fn run(commands: &Commands) -> Result<()> {
 /// [destination.example_name]
 /// boards = ["some", "list", "of", "boards"]
 /// ```
-fn distribute(examples: &String, bsps: &String) -> Result<()> {
-    let toml = read_to_string(PathBuf::from(examples).join("examples.toml"))?;
-
-    let examples_toml = toml.parse::<Table>()?;
-
+fn distribute(examples: &String, bsps: &String, examples_toml: Table) -> Result<()> {
     // TODO error out if this isn't a directory
     let bsps_path = PathBuf::from(bsps);
 
-    let bsp_dirs: Vec<_> = read_dir(bsps)?.filter_map(|entry| {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_dir() {
-                // file_name() returns None only if path terminates in `..`, and
-                // read_dir() won't yield those
-                Some(path.file_name().unwrap().to_owned())
+    let bsp_dirs: Vec<_> = read_dir(bsps)?
+        .filter_map(|entry| {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.is_dir() {
+                    // file_name() returns None only if path terminates in `..`, and
+                    // read_dir() won't yield those
+                    Some(path.file_name().unwrap().to_owned())
+                } else {
+                    None
+                }
             } else {
                 None
             }
-        } else {
-            None
-        }
-    }).collect();
+        })
+        .collect();
 
     // Filter the example directory contents to get files with "rs" extension
     for rust_source_path in read_dir(examples)?.filter_map(|entry| {
@@ -146,11 +144,13 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
 
         if is_generic {
             let source = read_to_string(&rust_source_path)?;
-            handlebars.register_template_string(example_name, source).map_err(|err| {
-                eprintln!("Error while rendering {example_name} for {:?}:", boards);
-                eprintln!("{}", err);
-                Error::Logged
-            })?;
+            handlebars
+                .register_template_string(example_name, source)
+                .map_err(|err| {
+                    eprintln!("Error while rendering {example_name} for {:?}:", boards);
+                    eprintln!("{}", err);
+                    Error::Logged
+                })?;
         }
 
         for board in boards {
@@ -159,7 +159,7 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
             }
 
             // TODO make the examples directory
-            
+
             let rendered_path = bsps_path
                 .join(PathBuf::from(board))
                 .join(PathBuf::from("examples"))
@@ -168,15 +168,16 @@ fn distribute(examples: &String, bsps: &String) -> Result<()> {
             if is_generic {
                 let mut data = BTreeMap::new();
                 data.insert("bsp".to_string(), board);
-    
+
                 let rendered = handlebars.render(example_name, &data).map_err(|err| {
                     eprintln!("Error while rendering {example_name} for {board}:");
                     eprintln!("{}", err.reason());
                     Error::HBRender(err)
                 })?;
 
-                // TODO if there's an existing file, compare it for equality and error out if we'd change the file
-    
+                // TODO if there's an existing file, compare it for equality and error out if
+                // we'd change the file
+
                 let mut filebuf = File::create(rendered_path)?;
                 filebuf.write_all(rendered.as_bytes())?;
             } else {
