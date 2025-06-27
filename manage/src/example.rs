@@ -2,10 +2,11 @@
 
 use crate::error::{Error, Result};
 use clap::Subcommand;
+use git2::{Repository, Status};
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
-use std::fs::{File, copy, read_dir, read_to_string};
+use std::fs::{File, copy, read_dir, read_to_string, remove_file};
 use std::io::Write;
 use std::path::PathBuf;
 use toml::{Table, Value};
@@ -53,9 +54,61 @@ pub fn run(config: Table, commands: &Commands) -> Result<()> {
                 &PathBuf::from(config_str)
             };
 
+            clear_bsp_example_dirs(&bsps_path)?;
+
             distribute(&examples_path, &bsps_path, example_config)
         }
     }
+}
+
+/// Removes .rs files from BSP example dirs iff committed in Git
+fn clear_bsp_example_dirs(bsps_path: &PathBuf) -> Result<()> {
+    let repo = Repository::discover(bsps_path)?;
+
+    for bsp_example_dir in read_dir(bsps_path)?.filter_map(|entry| {
+        if let Ok(entry) = entry {
+            let path = entry.path().join("examples");
+            if path.is_dir() { Some(path) } else { None }
+        } else {
+            None
+        }
+    }) {
+        let mut to_delete = Vec::new();
+        let mut untracked_changes = false;
+
+        for entry in read_dir(bsp_example_dir)? {
+            let path = entry?.path();
+            if path.is_file() && path.extension() == Some(&OsString::from("rs")) {
+                let status = repo.status_file(path.as_path())?;
+                if status.is_empty() || status.contains(Status::WT_DELETED) {
+                    to_delete.push(path);
+                } else {
+                    untracked_changes = true;
+                    if status.contains(Status::WT_NEW) {
+                        eprintln!("{} is not committed", path.to_string_lossy());
+                    } else if status.intersects(Status::WT_MODIFIED) {
+                        eprintln!("{} has uncommitted changes", path.to_string_lossy());
+                    } else {
+                        eprintln!(
+                            "{} has unhandled Git status {:?}",
+                            path.to_string_lossy(),
+                            status
+                        );
+                    }
+                }
+            }
+        }
+
+        if untracked_changes {
+            eprintln!("Aborting");
+            return Err(Error::Logged);
+        } else {
+            for path in to_delete {
+                remove_file(path)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Distributes each source file the examples directory to the BSPs

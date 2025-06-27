@@ -4,6 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("Git error: {0}")]
+    Git(git2::Error),
     #[error("IO error: {0}")]
     Io(std::io::Error),
     #[error("TOML deserializing error: {0}")]
@@ -41,5 +43,11 @@ impl From<handlebars::RenderError> for Error {
 impl From<handlebars::TemplateError> for Error {
     fn from(err: handlebars::TemplateError) -> Self {
         Error::HBTemplate(err)
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(value: git2::Error) -> Self {
+        Error::Git(value)
     }
 }
