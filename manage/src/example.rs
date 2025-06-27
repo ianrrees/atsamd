@@ -14,21 +14,47 @@ use toml::{Table, Value};
 pub enum Commands {
     /// Distribute examples amongst BSPs
     Distribute {
-        /// Path to the examples
-        examples: PathBuf,
-        /// Path to the BSPs
-        bsps: PathBuf,
+        /// Path to the examples, defaults to examples_dir in config file
+        examples: Option<PathBuf>,
+        /// Path to the BSPs, defaults to bsps_dir in config file
+        bsps: Option<PathBuf>,
     },
 }
 
 /// Entry point for example management
 pub fn run(config: Table, commands: &Commands) -> Result<()> {
-    let examples_toml = config
+    let example_config = config
         .get("example")
         .ok_or(Error::Other("No example section in TOML".to_string()))?;
 
     match commands {
-        Commands::Distribute { examples, bsps } => distribute(examples, bsps, examples_toml),
+        Commands::Distribute { examples, bsps } => {
+            let examples_path = if let Some(path) = examples {
+                path
+            } else {
+                let config_value = example_config.get("examples_dir").ok_or(Error::Other(
+                    "No examples path specified in arguments or configuration".to_string(),
+                ))?;
+                let config_str = config_value
+                    .as_str()
+                    .ok_or(Error::Other("examples_dir is not a string".to_string()))?;
+                &PathBuf::from(config_str)
+            };
+
+            let bsps_path = if let Some(path) = bsps {
+                path
+            } else {
+                let config_value = example_config.get("bsps_dir").ok_or(Error::Other(
+                    "No BSP path specified in arguments or configuration".to_string(),
+                ))?;
+                let config_str = config_value
+                    .as_str()
+                    .ok_or(Error::Other("bsps_dir is not a string".to_string()))?;
+                &PathBuf::from(config_str)
+            };
+
+            distribute(&examples_path, &bsps_path, example_config)
+        }
     }
 }
 
@@ -36,14 +62,15 @@ pub fn run(config: Table, commands: &Commands) -> Result<()> {
 ///
 /// A combination of the source file names and examples.toml determine which
 /// BSPs the example applies to.  Filenames are of the form
-/// <destination>-<example_name>.rs ; if <destination> matches a BSP directory
+/// `destination-example_name.rs` ; if `destination` matches a BSP directory
 /// name then the file is simply copied as
-/// <destination>/examples/<example_name>.rs , otherwise then the file is
-/// processed as a template and examples.toml is expected to contain an array
+/// `destination/examples/example_name.rs`` , otherwise then the file is
+/// processed as a template and the config file is expected to contain an array
 /// entry of the boards that it applies to:
 ///
 /// ```toml
-/// [destination.example_name]
+/// # n.b. the leading `example` refers to the `manage example` subcommand
+/// [example.destination.example_name]
 /// boards = ["some", "list", "of", "boards"]
 /// ```
 fn distribute(examples: &PathBuf, bsps_path: &PathBuf, examples_toml: &Value) -> Result<()> {
