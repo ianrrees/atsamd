@@ -126,13 +126,13 @@ use core::marker::PhantomData;
 use bitflags;
 use paste::paste;
 
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "has-mclk-oscctrl")]
 mod imports {
     pub use crate::pac::mclk::{RegisterBlock as BLOCK, APBAMASK, APBBMASK, APBCMASK, APBDMASK};
     pub use crate::pac::MCLK as PERIPHERAL;
 }
 
-#[cfg(feature = "thumbv6")]
+#[cfg(feature = "has-sysctrl")]
 mod imports {
     pub use crate::pac::pm::{RegisterBlock as BLOCK, APBAMASK, APBBMASK, APBCMASK};
     pub use crate::pac::PM as PERIPHERAL;
@@ -195,7 +195,7 @@ impl Apb {
     }
 
     #[inline]
-    #[cfg(feature = "thumbv7")]
+    #[cfg(feature = "has-apbd")]
     fn apbdmask(&mut self) -> &APBDMASK {
         &self.mclk().apbdmask
     }
@@ -218,7 +218,7 @@ impl Apb {
                     self.apbcmask()
                         .modify(|r, w| w.bits(r.bits() | mask.bits()));
                 }
-                #[cfg(feature = "thumbv7")]
+                #[cfg(feature = "has-apbd")]
                 ApbMask::D(mask) => {
                     self.apbdmask()
                         .modify(|r, w| w.bits(r.bits() | mask.bits()));
@@ -245,7 +245,7 @@ impl Apb {
                     self.apbcmask()
                         .modify(|r, w| w.bits(r.bits() & !mask.bits()));
                 }
-                #[cfg(feature = "thumbv7")]
+                #[cfg(feature = "has-apbd")]
                 ApbMask::D(mask) => {
                     self.apbdmask()
                         .modify(|r, w| w.bits(r.bits() & !mask.bits()));
@@ -288,7 +288,7 @@ enum ApbMask {
     A(ApbAMask),
     B(ApbBMask),
     C(ApbCMask),
-    #[cfg(feature = "thumbv7")]
+    #[cfg(feature = "has-apbd")]
     D(ApbDMask),
 }
 
@@ -438,7 +438,7 @@ macro_rules! define_apb_types {
     };
 }
 
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "samd5xe5x")]
 define_apb_types!(
     A {
         Pac0 = (0, all, any)

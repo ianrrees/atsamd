@@ -164,14 +164,14 @@
 use fugit::RateExtU32;
 use typenum::U0;
 
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "has-mclk-oscctrl")]
 mod imports {
     pub use crate::pac::osc32kctrl::OSCULP32K;
     pub use crate::typelevel::{Decrement, Increment};
     pub(crate) use crate::typelevel::{PrivateDecrement, PrivateIncrement};
 }
 
-#[cfg(feature = "thumbv6")]
+#[cfg(feature = "has-sysctrl")]
 mod imports {
     pub use crate::pac::sysctrl::OSCULP32K;
 }

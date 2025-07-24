@@ -347,7 +347,7 @@ use crate::pac;
 use crate::gpio::{self, AlternateH, AnyPin, Pin, PinId};
 use crate::pac::gclk::genctrl::SRCSELECT_A;
 use crate::pac::gclk::GENCTRL;
-#[cfg(feature = "thumbv6")]
+#[cfg(feature = "has-sysctrl")]
 use crate::pac::gclk::GENDIV;
 use crate::time::Hertz;
 use crate::typelevel::{Decrement, Increment, PrivateDecrement, PrivateIncrement, Sealed};
@@ -405,17 +405,17 @@ impl<G: GclkId> GclkToken<G> {
         // of registers for the corresponding `GclkId`, and we use a shared
         // reference to the register block. See the notes on `Token` types and
         // memory safety in the root of the `clock` module for more details.
-        #[cfg(feature = "thumbv7")]
+        #[cfg(feature = "has-mclk-oscctrl")]
         unsafe {
             &(*pac::GCLK::PTR).genctrl[G::NUM]
         }
-        #[cfg(feature = "thumbv6")]
+        #[cfg(feature = "has-sysctrl")]
         unsafe {
             &(*pac::GCLK::PTR).genctrl
         }
     }
 
-    #[cfg(feature = "thumbv6")]
+    #[cfg(feature = "has-sysctrl")]
     #[inline]
     fn gendiv(&self) -> &GENDIV {
         unsafe { &(*pac::GCLK::PTR).gendiv }
@@ -430,12 +430,12 @@ impl<G: GclkId> GclkToken<G> {
         // Safety: We are only reading from the `SYNCBUSY` register, and we are
         // only observing the bit corresponding to this particular `GclkId`, so
         // there is no risk of memory corruption.
-        #[cfg(feature = "thumbv7")]
+        #[cfg(feature = "has-mclk-oscctrl")]
         {
             let syncbusy = unsafe { &(*pac::GCLK::PTR).syncbusy };
             while syncbusy.read().genctrl().bits() & Self::MASK != 0 {}
         }
-        #[cfg(feature = "thumbv6")]
+        #[cfg(feature = "has-sysctrl")]
         {
             let status = unsafe { &(*pac::GCLK::PTR).status };
             while status.read().syncbusy().bit() {}
@@ -458,14 +458,14 @@ impl<G: GclkId> GclkToken<G> {
         let (divsel, div) = div.divsel_div();
         // Safety: The `DIVSEL` and `DIV` values are derived from the
         // `GclkDivider` type, so they are guaranteed to be valid.
-        #[cfg(feature = "thumbv7")]
+        #[cfg(feature = "has-mclk-oscctrl")]
         {
             self.genctrl().modify(|_, w| unsafe {
                 w.divsel().bit(divsel);
                 w.div().bits(div)
             });
         }
-        #[cfg(feature = "thumbv6")]
+        #[cfg(feature = "has-sysctrl")]
         {
             self.genctrl().write(|w| {
                 unsafe { w.id().bits(G::NUM as u8) };
@@ -514,9 +514,9 @@ impl<G: GclkId> GclkToken<G> {
             // Safety: The `DIVSEL` and `DIV` values are derived from the
             // `GclkDivider` type, so they are guaranteed to be valid.
             unsafe {
-                #[cfg(feature = "thumbv7")]
+                #[cfg(feature = "has-mclk-oscctrl")]
                 w.div().bits(div);
-                #[cfg(feature = "thumbv6")]
+                #[cfg(feature = "has-sysctrl")]
                 w.id().bits(G::NUM as u8);
             };
             w.divsel().bit(divsel);
@@ -524,7 +524,7 @@ impl<G: GclkId> GclkToken<G> {
             w.idc().bit(settings.improve_duty_cycle);
             w.oov().bit(settings.output_off_value)
         });
-        #[cfg(feature = "thumbv6")]
+        #[cfg(feature = "has-sysctrl")]
         self.gendiv().write(|w| unsafe { w.div().bits(div) });
         self.wait_syncbusy();
     }
@@ -796,7 +796,7 @@ pub trait GclkIo: PinId {
 
 // These implementations are much easier to read with `#[rustfmt::skip]`
 #[rustfmt::skip]
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "samd5xe5x")]
 mod gclkio_impl {
 
     use super::*;
@@ -945,17 +945,17 @@ impl<I: GclkIo<GclkId = Gclk0Id>> Gclk0Io for I {}
 pub enum DynGclkSourceId {
     Dfll,
     Dpll0,
-    #[cfg(feature = "thumbv7")]
+    #[cfg(feature = "has-dpll200m")]
     Dpll1,
     Gclk1,
     GclkIn,
-    #[cfg(feature = "thumbv6")]
-    Osc8M,
-    #[cfg(feature = "thumbv6")]
+    #[cfg(feature = "has-osc")]
+    Osc,
+    #[cfg(feature = "has-osc32k")]
     Osc32k,
     OscUlp32k,
     Xosc0,
-    #[cfg(feature = "thumbv7")]
+    #[cfg(feature = "has-xosc1")]
     Xosc1,
     Xosc32k,
 }
@@ -964,7 +964,7 @@ impl From<DynGclkSourceId> for SRCSELECT_A {
     fn from(source: DynGclkSourceId) -> Self {
         use DynGclkSourceId::*;
         use SRCSELECT_A::*;
-        #[cfg(feature = "thumbv7")]
+        #[cfg(feature = "samd5xe5x")]
         match source {
             Dfll => DFLL,
             Dpll0 => DPLL0,
@@ -976,13 +976,13 @@ impl From<DynGclkSourceId> for SRCSELECT_A {
             Xosc1 => XOSC1,
             Xosc32k => XOSC32K,
         }
-        #[cfg(feature = "thumbv6")]
+        #[cfg(any(feature = "samd11", feature = "samd21"))]
         match source {
             Dfll => DFLL48M,
             Dpll0 => DPLL96M,
             Gclk1 => GCLKGEN1,
             GclkIn => GCLKIN,
-            Osc8M => OSC8M,
+            Osc => OSC8M,
             Osc32k => OSC32K,
             OscUlp32k => OSCULP32K,
             Xosc0 => XOSC,
@@ -1048,7 +1048,7 @@ impl GclkSourceId for Xosc0Id {
     const DYN: DynGclkSourceId = DynGclkSourceId::Xosc0;
     type Resource = ();
 }
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "has-xosc1")]
 impl GclkSourceId for Xosc1Id {
     const DYN: DynGclkSourceId = DynGclkSourceId::Xosc1;
     type Resource = ();
