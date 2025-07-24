@@ -127,12 +127,12 @@ use core::marker::PhantomData;
 use bitflags;
 use paste::paste;
 
-#[cfg(feature = "samd51")]
+#[cfg(feature = "thumbv7")]
 mod imports {
     pub use crate::pac::{mclk::AHBMASK, MCLK as PERIPHERAL};
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(feature = "thumbv6")]
 mod imports {
     pub use crate::pac::{pm::AHBMASK, PM as PERIPHERAL};
 }
