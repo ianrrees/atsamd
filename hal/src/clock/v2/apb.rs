@@ -475,6 +475,7 @@ define_apb_types!(
     C {
         #[cfg(feature = "has-gmac")]
         Gmac = (2, all, any)
+        #[cfg(feature = "has-tcc2")]
         Tcc2 = (3, any, all)
         #[cfg(feature = "has-tcc3")]
         Tcc3 = (4, any, all)

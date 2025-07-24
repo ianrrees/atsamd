@@ -1186,7 +1186,7 @@ impl Xosc1k {
     }
 }
 
-#[cfg(feature = "has-osc1k")]
+#[cfg(feature = "has-xosc1k")]
 impl EnabledXosc1k {
     /// Disable 1 kHz output from the [`Xosc32kBase`] clock
     ///
@@ -1205,7 +1205,7 @@ impl EnabledXosc1k {
     }
 }
 
-#[cfg(feature = "has-osc1k")]
+#[cfg(feature = "has-xosc1k")]
 impl<N> Source for EnabledXosc1k<N> {
     type Id = Xosc1kId;
 

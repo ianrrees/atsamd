@@ -1045,6 +1045,7 @@ impl<I: GclkIo> GclkSourceId for I {
     const DYN: DynGclkSourceId = DynGclkSourceId::GclkIn;
     type Resource = Pin<I, AlternateH>;
 }
+#[cfg(feature = "has-osc")]
 impl GclkSourceId for OscId {
     const DYN: DynGclkSourceId = DynGclkSourceId::Osc;
     type Resource = ();
