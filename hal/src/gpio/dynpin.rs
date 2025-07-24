@@ -114,7 +114,6 @@ pub enum DynAlternate {
     E,
     F,
     G,
-    #[cfg(any(feature = "samd21", feature = "thumbv7"))]
     H,
     #[cfg(feature = "thumbv7")]
     I,
@@ -185,9 +184,7 @@ macro_rules! dyn_alternate {
     };
 }
 
-dyn_alternate!(B, C, D, E, F, G);
-#[cfg(any(feature = "samd21", feature = "thumbv7"))]
-dyn_alternate!(H);
+dyn_alternate!(B, C, D, E, F, G, H);
 #[cfg(feature = "thumbv7")]
 dyn_alternate!(I, J, K, L, M, N);
 
