@@ -353,10 +353,14 @@ use crate::time::Hertz;
 use crate::typelevel::{Decrement, Increment, PrivateDecrement, PrivateIncrement, Sealed};
 
 use super::dfll::DfllId;
-// use super::dpll::{Dpll0Id, Dpll1Id};
+use super::dpll::Dpll0Id;
+#[cfg(feature = "has-dpll200m")]
+use super::dpll::Dpll1Id;
+#[cfg(feature = "has-osc")]
+use super::osc::OscId;
 use super::osculp32k::OscUlp32kId;
 use super::xosc::Xosc0Id;
-#[cfg(feature = "thumbv7")]
+#[cfg(feature = "has-xosc1")]
 use super::xosc::Xosc1Id;
 use super::xosc32k::Xosc32kId;
 use super::{Enabled, Source};
@@ -919,7 +923,7 @@ mod gclkio_impl {
 ///
 /// This is effectively a trait alias for [`PinId`]s that implement [`GclkIo`]
 /// with a `GclkId` associated type of [`Gclk0Id`], i.e.
-/// `GclkIo<GclkId = Gclk0Id>`. The trait is useful to simply some function
+/// `GclkIo<GclkId = Gclk0Id>`. The trait is useful to simplify some function
 /// signatures and to help type inference in a few cases.
 pub trait Gclk0Io
 where
@@ -1024,14 +1028,15 @@ impl GclkSourceId for DfllId {
     const DYN: DynGclkSourceId = DynGclkSourceId::Dfll;
     type Resource = ();
 }
-//impl GclkSourceId for Dpll0Id {
-//    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll0;
-//    type Resource = ();
-//}
-//impl GclkSourceId for Dpll1Id {
-//    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll1;
-//    type Resource = ();
-//}
+impl GclkSourceId for Dpll0Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll0;
+    type Resource = ();
+}
+#[cfg(feature = "has-dpll200m")]
+impl GclkSourceId for Dpll1Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll1;
+    type Resource = ();
+}
 impl GclkSourceId for Gclk1Id {
     const DYN: DynGclkSourceId = DynGclkSourceId::Gclk1;
     type Resource = ();
@@ -1039,6 +1044,10 @@ impl GclkSourceId for Gclk1Id {
 impl<I: GclkIo> GclkSourceId for I {
     const DYN: DynGclkSourceId = DynGclkSourceId::GclkIn;
     type Resource = Pin<I, AlternateH>;
+}
+impl GclkSourceId for OscId {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Osc;
+    type Resource = ();
 }
 impl GclkSourceId for OscUlp32kId {
     const DYN: DynGclkSourceId = DynGclkSourceId::OscUlp32k;
